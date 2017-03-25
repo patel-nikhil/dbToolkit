@@ -4,7 +4,7 @@ dbToolkit is a collection of cross-platform modules whose logic is based upon de
 
 ### Design
 
-dbToolkit is designed the [Qt] framework and uses [PyQt5], a set of Python bindings for the Qt application framework.
+dbToolkit is designed using the [Qt] framework and uses [PyQt5], a set of Python bindings for the Qt application framework.
 
 
 
