@@ -1,6 +1,10 @@
 #!/user/bin/python3
 # -*- coding: utf-8 -*-
 
+""""
+This module customizes the user interface and defines
+the control flow of the Mincover program
+"""
 
 import re, sys
 
@@ -23,7 +27,10 @@ _translate = QtCore.QCoreApplication.translate
 
 
 class UI(QMainWindow):
-
+    """
+    The UI class is the delegate of QMainWindow. It is the interface
+    between the main application and the user interface
+    """
     def __init__(self):
         super(UI, self).__init__()
 
@@ -35,6 +42,8 @@ class UI(QMainWindow):
         self.show()
 
     def initUI(self):
+        """Initialize and define properties of the main window"""
+        
         self.setGeometry(300, 100, 450, 620)
         self.setWindowTitle('Minimal Cover Widget')
         #self.setWindowIcon(QIcon('icon.png'))
@@ -47,6 +56,8 @@ class UI(QMainWindow):
         
 
     def addMenus(self):
+        """Add customized menubar to the main window"""
+        
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
 
@@ -74,8 +85,9 @@ class UI(QMainWindow):
 
     ###################     Callbacks   ###################
 
-    # Connect signals to appropriate callbacks
     def addCallbacks(self):
+        """Connect signals to appropriate callbacks"""
+        
         self.ui.addFDBtn.clicked.connect(self.get_fds)        
         self.ui.splitBtn.clicked.connect(self.split_fds)
         self.ui.clearBtn.clicked.connect(self.clear_fds)
@@ -85,8 +97,8 @@ class UI(QMainWindow):
         self.ui.saveBtn.clicked.connect(lambda: export_cover(self, self.ui.mincoverText))
 
 
-    # Manual entry - schema: attribute by attribute
     def get_schema(self):
+        """Launch manual entry dialog for schema"""        
         global _attributes
         
         self.window = QDialog()
@@ -105,8 +117,9 @@ class UI(QMainWindow):
         self.ui.schemaLine.setText(','.join(_attributes))
         self.window.exec_()
 
-    # Manual entry - functional dependencies
     def get_fds(self):
+        """Launch manual entry dialog for functional dependencies"""
+        
         self.window = QDialog()
         self.form = Ui_Dialog()     
         self.form.setupUi(self.window)        
@@ -124,6 +137,7 @@ class UI(QMainWindow):
         self.window.exec_()
 
     def split_fds(self):
+        """Split the rhs of the FDs in the view and update interface"""
         global _fds
         
         split_fds = mincover.split_rhs([[dep.split(',') for dep in fd.split('-')] for fd in _fds])
@@ -139,7 +153,9 @@ class UI(QMainWindow):
         
 
     def clear_fds(self):
+        """Empty the set of functional dependencies"""
         global _fds
+        
         _fds = []
         self.ui.fdText.data.clear()    
 
@@ -147,9 +163,11 @@ class UI(QMainWindow):
 
 
 def initModel(listView):
-   data = QStandardItemModel(listView)
-   listView.data = data
-   listView.setModel(data)
+    """Define the data model for the specified widget"""
+    
+    data = QStandardItemModel(listView)
+    listView.data = data
+    listView.setModel(data)
 
 
 
@@ -157,6 +175,7 @@ def initModel(listView):
 
 
 def update(source, schema):
+    """Update the schema displayed in the interface"""
     global _attributes
 
     _attributes = []
@@ -166,6 +185,7 @@ def update(source, schema):
 
 
 def updateFD(source, fdBox):
+    """Update the functional dependencies displayed in the interface"""
     global _fds
     _fds = []
 
@@ -186,6 +206,7 @@ _cover = []
 
 
 def addAttr(source):
+    """Validate entry of attribute to input dialog"""
     attributes = []
     for i in range(source.schemaView.data.rowCount()):
         attributes.append(source.schemaView.data.item(i).text())
@@ -204,10 +225,12 @@ def addAttr(source):
                 source.schemaView.data.appendRow(newAttr)
                 source.attrEntry.clear()
 
-def clearSchema(source):        
+def clearSchema(source):
+    """Clear data from input form"""
     source.schemaView.data.clear()
 
 def addFD(source):
+    """Validate entry of functional dependency to input dialog"""
     global _attributes
     deps = []
     
@@ -234,9 +257,10 @@ def addFD(source):
 
 
 def importCSV(schema):
+    """Import a schema from a comma-delimited file"""
     import csv
     global _attributes
-    
+
     with open('database.csv', 'r', newline='') as infile:            
         if csv.Sniffer().has_header(infile.readline()):
             infile.seek(0)
@@ -251,19 +275,24 @@ def importCSV(schema):
 
 
 def export_cover(window, source):
+    """Export the minimal cover to file"""
+
     fileName = QFileDialog.getSaveFileName(window, _translate("MainWindow", "Save File"), "",
         _translate("MainWindow", "DB Design File (*.fdcover);;Comma-separated (*.csv);;Text files (*.txt);;All files (*.*)"))
 
     dependencies = []
     for i in range(source.data.rowCount()):
         dependencies.append(source.data.item(i).text().replace("\t\u27F6\t", '-'))
-        
+
+    # Minimal cover  
     data = '\r\n'.join(dependencies)    
 
+    # Functional dependencies
     deps = []
     for i in range(window.ui.fdText.data.rowCount()):
         deps.append(window.ui.fdText.data.item(i).text().replace("\t\u27F6\t", "-"))
-    
+
+    # Write to file
     if fileName is not None:
         with open(fileName[0], "w") as outfile:
             outfile.write("Minimal Cover for Schema: ")
@@ -277,17 +306,21 @@ def export_cover(window, source):
 
 
 def gen_cover(coverBox):
+    """Use functional dependencies to generate a minimal cover"""
     import mincover
 
     global _fds
     global _cover
-    
+
+    # Format for function call to mincover
     ffds = [[dep for dep in fd.split('-')] for fd in _fds]
     
     cover = mincover.mincover(ffds)
-    
+
+    # Format mincover output to match required output
     _cover = ["-".join([", ".join(a) for a in each]) for each in cover]
-    
+
+    # Update interface with minimal cover
     coverBox.data.clear()
     for dep in _cover:
         text = dep.replace('-', "\t\u27F6\t")
