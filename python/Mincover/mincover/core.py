@@ -1,0 +1,295 @@
+#!/user/bin/python3
+# -*- coding: utf-8 -*-
+
+
+import re, sys
+
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton
+from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QApplication
+from PyQt5.QtWidgets import QMainWindow, QDialog, QFileDialog
+from PyQt5.QtWidgets import QAction, qApp
+from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QStandardItem, QStandardItemModel
+from PyQt5 import QtCore
+
+
+from view.interface import Ui_MainWindow
+from view.ui_input import Ui_Dialog
+
+import mincover
+
+
+_translate = QtCore.QCoreApplication.translate
+
+
+class UI(QMainWindow):
+
+    def __init__(self):
+        super(UI, self).__init__()
+
+        # Set up the user interface from Designer.
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
+        
+        self.initUI()                
+        self.show()
+
+    def initUI(self):
+        self.setGeometry(300, 100, 450, 620)
+        self.setWindowTitle('Minimal Cover Widget')
+        #self.setWindowIcon(QIcon('icon.png'))
+
+        self.addMenus()
+        self.addCallbacks()
+
+        initModel(self.ui.fdText)
+        initModel(self.ui.mincoverText)
+        
+
+    def addMenus(self):
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('&File')
+
+        # Add modal filedialog
+        csvImport = QAction(QIcon(), '&Import from CSV', self)
+        csvImport.setShortcut('Ctrl+O')
+        csvImport.setStatusTip('Import Schema as first line of a comma-separated file')
+        csvImport.triggered.connect(lambda: importCSV(self.ui.schemaLine))
+
+        # Add modal dialog for choosing database type and path to driver & database
+        dbImport = QAction(QIcon(), '&Import from existing database', self)
+        dbImport.setShortcut('Ctrl+I')
+        dbImport.setStatusTip('Import Schema from a database')
+        dbImport.triggered.connect(lambda: importCSV(self.ui.schemaLine))
+
+        exitAction = QAction(QIcon(), '&Exit', self)
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Exit application')
+        exitAction.triggered.connect(qApp.quit)
+
+        fileMenu.addAction(dbImport)
+        fileMenu.addAction(csvImport)
+        fileMenu.addAction(exitAction)
+
+
+    ###################     Callbacks   ###################
+
+    # Connect signals to appropriate callbacks
+    def addCallbacks(self):
+        self.ui.addFDBtn.clicked.connect(self.get_fds)        
+        self.ui.splitBtn.clicked.connect(self.split_fds)
+        self.ui.clearBtn.clicked.connect(self.clear_fds)
+
+        self.ui.addSchemaBtn.clicked.connect(self.get_schema)
+        self.ui.genBtn.clicked.connect(lambda: gen_cover(self.ui.mincoverText))
+        self.ui.saveBtn.clicked.connect(lambda: export_cover(self, self.ui.mincoverText))
+
+
+    # Manual entry - schema: attribute by attribute
+    def get_schema(self):
+        global _attributes
+        
+        self.window = QDialog()
+        self.form = Ui_Dialog()     
+        self.form.setupUi(self.window)        
+        self.form.attrLabel.setText(_translate("Dialog", "Enter attribute name"))
+        self.form.confirmBtn.clicked.connect(lambda: addAttr(self.form))
+        self.form.clearBtn.clicked.connect(lambda: clearSchema(self.form))
+        self.form.buttonBox.accepted.connect(lambda: update(self.form, self.ui.schemaLine))
+        
+        
+        initModel(self.form.schemaView)
+        for attr in _attributes:            
+            newAttr = QStandardItem(attr)
+            self.form.schemaView.data.appendRow(newAttr)
+        self.ui.schemaLine.setText(','.join(_attributes))
+        self.window.exec_()
+
+    # Manual entry - functional dependencies
+    def get_fds(self):
+        self.window = QDialog()
+        self.form = Ui_Dialog()     
+        self.form.setupUi(self.window)        
+        self.form.attrLabel.setText(_translate("Dialog", "Enter Dependency in form attr1, attr2 - attr3, attr4"))
+        self.form.confirmBtn.clicked.connect(lambda: addFD(self.form))
+        self.form.clearBtn.clicked.connect(lambda: clearSchema(self.form))
+        self.form.buttonBox.accepted.connect(lambda: updateFD(self.form, self.ui.fdText))
+        
+        initModel(self.form.schemaView)
+        
+        for dep in _fds:
+            text = dep.replace('-', "\t\u27F6\t")
+            newFD = QStandardItem(text)            
+            self.form.schemaView.data.appendRow(newFD)
+        self.window.exec_()
+
+    def split_fds(self):
+        global _fds
+        
+        split_fds = mincover.split_rhs([[dep.split(',') for dep in fd.split('-')] for fd in _fds])
+        self.ui.fdText.data.clear()
+        
+        # format string
+        _fds = ["-".join([", ".join(a) for a in each]) for each in split_fds]
+        
+        for fd in _fds:
+            text = fd.replace('-', "\t\u27F6\t")
+            newFD = QStandardItem(text)            
+            self.ui.fdText.data.appendRow(newFD)
+        
+
+    def clear_fds(self):
+        global _fds
+        _fds = []
+        self.ui.fdText.data.clear()    
+
+
+
+
+def initModel(listView):
+   data = QStandardItemModel(listView)
+   listView.data = data
+   listView.setModel(data)
+
+
+
+    ###################     Update   ###################
+
+
+def update(source, schema):
+    global _attributes
+
+    _attributes = []
+    for i in range(source.schemaView.data.rowCount()):
+        _attributes.append(source.schemaView.data.item(i).text())
+    schema.setText(','.join(_attributes))
+
+
+def updateFD(source, fdBox):
+    global _fds
+    _fds = []
+
+    for i in range(source.schemaView.data.rowCount()):
+        _fds.append(source.schemaView.data.item(i).text().replace("\t\u27F6\t", "-"))
+
+    fdBox.data.clear()
+    for dep in _fds:
+        text = dep.replace('-', "\t\u27F6\t")
+        newFD = QStandardItem(text)            
+        fdBox.data.appendRow(newFD)
+
+    ###################     Entry   ###################
+
+_attributes = []
+_fds = []
+_cover = []
+
+
+def addAttr(source):
+    attributes = []
+    for i in range(source.schemaView.data.rowCount()):
+        attributes.append(source.schemaView.data.item(i).text())
+    
+    
+    inputText = source.attrEntry.text()
+    attr = str(inputText)
+    attr = re.match("[\w+_][\w+\d+_]*", attr)
+
+    if attr is not None:
+        if attr.groups() == ():
+            text = attr.group(0)
+            if len(text) == len(inputText) and text.lower() not in attributes:
+                attributes.append(text.lower())
+                newAttr = QStandardItem(text)
+                source.schemaView.data.appendRow(newAttr)
+                source.attrEntry.clear()
+
+def clearSchema(source):        
+    source.schemaView.data.clear()
+
+def addFD(source):
+    global _attributes
+    deps = []
+    
+    for i in range(source.schemaView.data.rowCount()):
+        deps.append(source.schemaView.data.item(i).text())
+    
+    inputText = source.attrEntry.text()
+    fd = str(inputText).replace(' ', '') # narrow the scope using regex
+    fd = re.match("\w+[,\w]*-\w+[,\w]*", fd)
+
+    if fd is not None:
+        if fd.groups() == ():
+            text = fd.group(0)
+            
+            for attr in re.split('[,-]', text):
+                if attr not in _attributes:            
+                    return
+            if text not in deps:
+                deps.append(text)
+                text = text.replace('-', "\t\u27F6\t")
+                newFD = QStandardItem(text)            
+                source.schemaView.data.appendRow(newFD)
+                source.attrEntry.clear()
+
+
+def importCSV(schema):
+    import csv
+    global _attributes
+    
+    with open('database.csv', 'r', newline='') as infile:            
+        if csv.Sniffer().has_header(infile.readline()):
+            infile.seek(0)
+            reader = csv.reader(infile)
+            text = next(reader) # -> [attr1, attr2, ..., attrN]
+            _attributes = [s.lower() for s in text]
+            for attr in _attributes:
+                schema.text = _attributes
+        else:
+            print("Invalid formatting")
+
+
+
+def export_cover(window, source):
+    fileName = QFileDialog.getSaveFileName(window, _translate("MainWindow", "Save File"), "",
+        _translate("MainWindow", "DB Design File (*.fdcover);;Comma-separated (*.csv);;Text files (*.txt);;All files (*.*)"))
+
+    dependencies = []
+    for i in range(source.data.rowCount()):
+        dependencies.append(source.data.item(i).text().replace("\t\u27F6\t", '-'))
+        
+    data = '\r\n'.join(dependencies)    
+
+    deps = []
+    for i in range(window.ui.fdText.data.rowCount()):
+        deps.append(window.ui.fdText.data.item(i).text().replace("\t\u27F6\t", "-"))
+    
+    if fileName is not None:
+        with open(fileName[0], "w") as outfile:
+            outfile.write("Minimal Cover for Schema: ")
+            outfile.write(window.ui.schemaLine.text() + "\n")
+            outfile.write("With functional dependencies:")
+            outfile.write('\r\n'.join(deps) + "\n\n")
+            outfile.write(data)
+                                       
+
+    ###################     Generator     ###################
+
+
+def gen_cover(coverBox):
+    import mincover
+
+    global _fds
+    global _cover
+    
+    ffds = [[dep for dep in fd.split('-')] for fd in _fds]
+    
+    cover = mincover.mincover(ffds)
+    
+    _cover = ["-".join([", ".join(a) for a in each]) for each in cover]
+    
+    coverBox.data.clear()
+    for dep in _cover:
+        text = dep.replace('-', "\t\u27F6\t")
+        newFD = QStandardItem(text)            
+        coverBox.data.appendRow(newFD)
