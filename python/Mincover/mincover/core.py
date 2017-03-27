@@ -23,6 +23,8 @@ from view.ui_input import Ui_Dialog
 import mincover
 
 
+__all__ = ["UI"]
+
 _translate = QtCore.QCoreApplication.translate
 
 
