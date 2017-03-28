@@ -1,0 +1,8 @@
+Tasks(pid, taskID, description)
+7,1,Prompt for existing filename
+8,1,Update user interface
+7,2,Validate file contents
+8,2,Prompt for and validate input
+7,3,Load data into model and update views
+8,3,Write equality checks for FDs
+8,4,Write and execute tests
