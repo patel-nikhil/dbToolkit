@@ -292,7 +292,7 @@ def export_cover(window, source):
         dependencies.append(source.data.item(i).text().replace("\t\u27F6\t", '-'))
 
     # Minimal cover  
-    data = '\r\n'.join(dependencies)    
+    data = '\n'.join(dependencies)    
 
     # Functional dependencies
     deps = []
@@ -305,7 +305,7 @@ def export_cover(window, source):
             outfile.write("Minimal Cover for Schema: ")
             outfile.write(window.ui.schemaLine.text() + "\n")
             outfile.write("With functional dependencies:")
-            outfile.write('\r\n'.join(deps) + "\n\n")
+            outfile.write(', '.join(deps) + "\n")
             outfile.write(data)
                                        
 
@@ -313,9 +313,17 @@ def import_data():
     """Import previously exported dataset"""
     
     fileName = QFileDialog.getSaveFileName(window, _translate("MainWindow", "Save File"), "",
-        _translate("MainWindow", "DB Design File (*.fdcover);;Comma-separated (*.csv);;Text files (*.txt);;All files (*.*)"))
+        _translate("MainWindow", "DB Design File (*.fdcover);;All files (*.*)"))
+    
+    if os.path.isfile(fileName[0]):
+        with open(fileName[0], "r") as infile:
+            line1 = infile.readline()
+            schema = line1[:-1].split(":")[1][1:]
 
+            line2 = infile.readline()
+            fds = line2[:-1].split(':')[1].split(', ')
 
+            cover = infile.read().split('\n')
 
     ###################     Generator     ###################
 
