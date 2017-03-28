@@ -6,3 +6,4 @@ Tasks(pid, taskID, description)
 7,3,Load data into model and update views
 8,3,Write equality checks for FDs
 8,4,Write and execute tests
+7,4,Fix data exporting
