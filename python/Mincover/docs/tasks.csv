@@ -1,9 +1,10 @@
 Tasks(pid, taskID, description)
 7,1,Prompt for existing filename
-8,1,Update user interface
 7,2,Validate file contents
-8,2,Prompt for and validate input
 7,3,Load data into model and update views
+7,4,Fix data exporting
+7,5,Test import methods
+8,1,Update user interface
+8,2,Prompt for and validate input
 8,3,Write equality checks for FDs
 8,4,Write and execute tests
-7,4,Fix data exporting

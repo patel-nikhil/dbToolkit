@@ -6,7 +6,9 @@ This module customizes the user interface and defines
 the control flow of the Mincover program
 """
 
-import re, sys
+import os
+import re
+import sys
 
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QApplication
@@ -63,9 +65,15 @@ class UI(QMainWindow):
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
 
-        # Add modal filedialog
+        # Load previous instance option
+        openAction = QAction(QIcon(), '&Open previous...', self)
+        openAction.setShortcut('Ctrl+O')
+        openAction.setStatusTip('Import previously saved Mincover data')
+        openAction.triggered.connect(lambda: import_data(self))
+
+        # Import from csv option
         csvImport = QAction(QIcon(), '&Import from CSV', self)
-        csvImport.setShortcut('Ctrl+O')
+        csvImport.setShortcut('Ctrl+Shift+I')
         csvImport.setStatusTip('Import Schema as first line of a comma-separated file')
         csvImport.triggered.connect(lambda: importCSV(self, self.ui.schemaLine))
 
@@ -80,6 +88,7 @@ class UI(QMainWindow):
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(qApp.quit)
 
+        fileMenu.addAction(openAction)
         fileMenu.addAction(dbImport)
         fileMenu.addAction(csvImport)
         fileMenu.addAction(exitAction)
@@ -260,7 +269,6 @@ def addFD(source):
 
 def importCSV(window, schema):
     """Import a schema from a comma-delimited file"""
-    import os
     import csv
     global _attributes
 
@@ -309,21 +317,70 @@ def export_cover(window, source):
             outfile.write(data)
                                        
 
-def import_data():
+def import_data(window):
     """Import previously exported dataset"""
+    global _attributes
+    global _fds
+    global _cover
     
-    fileName = QFileDialog.getSaveFileName(window, _translate("MainWindow", "Save File"), "",
+    fileName = QFileDialog.getOpenFileName(window, _translate("MainWindow", "Open File"), "",
         _translate("MainWindow", "DB Design File (*.fdcover);;All files (*.*)"))
-    
+
     if os.path.isfile(fileName[0]):
         with open(fileName[0], "r") as infile:
-            line1 = infile.readline()
-            schema = line1[:-1].split(":")[1][1:]
+            try:                
+                line1 = infile.readline()
+                schema = line1[:-1].split(":")[1][1:]
 
-            line2 = infile.readline()
-            fds = line2[:-1].split(':')[1].split(', ')
+                line2 = infile.readline()
+                fds = line2[:-1].split(':')[1].split(', ')
 
-            cover = infile.read().split('\n')
+                cover = infile.read().split('\n')
+
+                attributes = [s.lower() for s in schema.split(',')]
+
+                for dep in fds:
+                    if not testFD(dep, attributes):
+                        raise
+
+                for fd in cover:
+                    if not testFD(fd, attributes):
+                        raise
+
+                _attributes = attributes
+                _fds = fds
+                _cover = cover
+
+                window.ui.fdText.data.clear()
+                window.ui.mincoverText.data.clear()
+
+                window.ui.schemaLine.setText(schema)
+
+                for dep in fds:
+                    text = dep.replace('-', "\t\u27F6\t")
+                    newFD = QStandardItem(text)            
+                    window.ui.fdText.data.appendRow(newFD)
+                    
+                for dep in cover:
+                    text = dep.replace('-', "\t\u27F6\t")
+                    newFD = QStandardItem(text)            
+                    window.ui.mincoverText.data.appendRow(newFD)
+                    
+            except:
+                print("Invalid file contents or format")
+                pass
+
+
+
+def testFD(fd, attributes):
+    """Test that fd only contains attributes listed in the schema"""
+
+    fd = str(fd).replace(' ', '')
+    if fd is not None:            
+        for attr in re.split('[,-]', fd):
+            if attr not in attributes:            
+                return False
+    return True
 
     ###################     Generator     ###################
 

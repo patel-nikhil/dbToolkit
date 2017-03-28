@@ -75,7 +75,7 @@ def view_task_log():
     global cursor
     global connection
     print("pid, taskID, time, weightRemaining")
-    cursor.execute("SELECT * FROM TaskLog ORDER BY taskID")
+    cursor.execute("SELECT * FROM TaskLog ORDER BY pid")
     pprint.pprint(cursor.fetchall())
 
 def update_sprint_task(pid, taskID, weight):
@@ -156,7 +156,7 @@ def export():
         csvWriter = csv.writer(f) 
 ##        cursor.execute("pragma table_info('Tasks')")
 ##        write(csvWriter, cursor)
-        cursor.execute("SELECT * FROM Tasks ORDER BY taskID")
+        cursor.execute("SELECT * FROM Tasks ORDER BY pid")
         write(csvWriter, cursor)
 
     with open("tasklog.csv", "w") as f:
