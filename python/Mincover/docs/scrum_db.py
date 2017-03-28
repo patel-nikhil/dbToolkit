@@ -21,7 +21,7 @@ def view_product_backlog():
     global connection
     print("pid, story, est, priority")
     cursor.execute("SELECT * FROM ProductBacklog ORDER BY priority")
-    pprint.pprint(cursor.fetchall())
+    print(cursor.fetchall())
 
 def add_story(ID, story, estimation, priority):
     global cursor

@@ -1,10 +1,10 @@
 ProductBacklog(pid, story, est, priority)
-3,As a user I want to reload exported Mincover data,3,1
+7,As a user I want to reload exported Mincover data,3,1
 8,As a user I want to test if my current set of FDs form a minimal cover,4,2
 2,As a user I want to import my schema from a character-delimited file on disk,2,3
 1,As a sqlite user I want to be able to import my schema from a sqlite database saved on disk,1,4
 5,As a sqlite user I want to import my schema from an in-memory sqlite database,2,5
-7,As a sqlite user I want to import my schema from a remote url,3,6
+3,As a sqlite user I want to import my schema from a remote url,3,6
 4,As a non-sqlite user I want to import a schema from my saved database,7,7
 6,As a non-sqlite user I want to import my schema from an in-memory database,6,8
 9,As a user I want to add domain constraints before creating a minimal cover,10,9
