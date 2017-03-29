@@ -357,6 +357,12 @@ def import_data(window):
                     if not testFD(fd, attributes):
                         raise DatabaseError("FD(s) contain attributes not in schema")
 
+                import mincover
+                ffds = [[dep for dep in fd.split('-')] for fd in fds]
+                ffds = mincover.mincover(ffds)
+                ffds = ["-".join([", ".join(a) for a in each]) for each in ffds]
+                assert equality(cover, ffds)
+
                 _attributes = attributes
                 _fds = fds
                 _cover = cover
@@ -405,7 +411,7 @@ def gen_cover(coverBox):
     ffds = [[dep for dep in fd.split('-')] for fd in _fds]
     
     cover = mincover.mincover(ffds)
-
+    
     # Format mincover output to match required output
     _cover = ["-".join([", ".join(a) for a in each]) for each in cover]
 
@@ -416,7 +422,17 @@ def gen_cover(coverBox):
         newFD = QStandardItem(text)            
         coverBox.data.appendRow(newFD)
 
+#Dependencies of form ['a-b,c', 'a,b-c']
+def equality(set1, set2):
+    from collections import Counter
 
+    if Counter(set1) == Counter(set2):
+        return True
+    else:
+        raise EqualityError
 
 class DatabaseError(Exception):
+    pass
+
+class EqualityError(Exception):
     pass
