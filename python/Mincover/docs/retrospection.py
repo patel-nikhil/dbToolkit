@@ -20,7 +20,7 @@ def insert(notes):
 
 def view():
     global cursor
-    print("date, minutes")
+    print("date, retrospection")
     cursor.execute("SELECT * FROM Reflection ORDER BY date")
     pprint.pprint(cursor.fetchall())
 
@@ -28,7 +28,7 @@ def export():
     global cursor
     global connection
 
-    with open("daily_scrum.csv", "w") as f:
+    with open("retrospection.csv", "w") as f:
         f.write("Reflection(date, minutes)" + "\n")
         csvWriter = csv.writer(f)    
         cursor.execute("SELECT * FROM Reflection ORDER BY date")

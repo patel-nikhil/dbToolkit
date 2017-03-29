@@ -164,7 +164,7 @@ def export():
         csvWriter = csv.writer(f)
 ##        cursor.execute("pragma table_info('Tasklog')")
 ##        write(csvWriter, cursor)
-        cursor.execute("SELECT * FROM TaskLog ORDER BY taskID")
+        cursor.execute("SELECT * FROM TaskLog ORDER BY pid")
         write(csvWriter, cursor)
 
     with open("sprints.csv", "w") as f:
