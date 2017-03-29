@@ -1,0 +1,4 @@
+Minimal Cover for Schema: a,b,c
+With functional dependencies:a-b, b-d, a-e
+a-b
+b-c

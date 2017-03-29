@@ -341,7 +341,7 @@ def import_data(window):
             try:                
                 line1 = infile.readline()
                 schema = line1[:-1].split(":")[1][1:]
-
+                
                 line2 = infile.readline()
                 fds = line2[:-1].split(':')[1].split(', ')
 
@@ -351,11 +351,11 @@ def import_data(window):
 
                 for dep in fds:
                     if not testFD(dep, attributes):
-                        raise
+                        raise DatabaseError("FD(s) contain attributes not in schema")
 
                 for fd in cover:
                     if not testFD(fd, attributes):
-                        raise
+                        raise DatabaseError("FD(s) contain attributes not in schema")
 
                 _attributes = attributes
                 _fds = fds
@@ -376,9 +376,8 @@ def import_data(window):
                     newFD = QStandardItem(text)            
                     window.ui.mincoverText.data.appendRow(newFD)
                     
-            except:
-                print("Invalid file contents or format")
-                pass
+            except (IndexError, DatabaseError) as e:
+                print(e)
 
 
 
@@ -416,3 +415,8 @@ def gen_cover(coverBox):
         text = dep.replace('-', "\t\u27F6\t")
         newFD = QStandardItem(text)            
         coverBox.data.appendRow(newFD)
+
+
+
+class DatabaseError(Exception):
+    pass
