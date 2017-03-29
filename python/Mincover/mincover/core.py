@@ -323,11 +323,21 @@ def import_data(window):
     global _fds
     global _cover
     
-    fileName = QFileDialog.getOpenFileName(window, _translate("MainWindow", "Open File"), "",
-        _translate("MainWindow", "DB Design File (*.fdcover);;All files (*.*)"))
+    dialog = QFileDialog(window, _translate("MainWindow", "Open File"), "",
+        _translate("MainWindow", "DB Design File (*.fdcover);;All files (*.*)"),
+                             options = 0)
+    dialog.setFileMode(QFileDialog.ExistingFile)
+    dialog.text = lambda x=dialog.result: dialog.selectedFiles()[0] if x() else None
+    #dialog.text = dialog.selectedFiles() if dialog.result() else None ##doesn't work
+    dialog.accepted.connect(lambda: dialog.text)
+    dialog.exec()
 
-    if os.path.isfile(fileName[0]):
-        with open(fileName[0], "r") as infile:
+    fileName = dialog.text()
+    if fileName is None:
+        return
+
+    if os.path.isfile(fileName):
+        with open(fileName, "r") as infile:
             try:                
                 line1 = infile.readline()
                 schema = line1[:-1].split(":")[1][1:]
