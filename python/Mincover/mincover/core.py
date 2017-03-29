@@ -6,7 +6,9 @@ This module customizes the user interface and defines
 the control flow of the Mincover program
 """
 
-import re, sys
+import os
+import re
+import sys
 
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton
 from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QApplication
@@ -63,23 +65,30 @@ class UI(QMainWindow):
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
 
-        # Add modal filedialog
+        # Load previous instance option
+        openAction = QAction(QIcon(), '&Open previous...', self)
+        openAction.setShortcut('Ctrl+O')
+        openAction.setStatusTip('Import previously saved Mincover data')
+        openAction.triggered.connect(lambda: import_data(self))
+
+        # Import from csv option
         csvImport = QAction(QIcon(), '&Import from CSV', self)
-        csvImport.setShortcut('Ctrl+O')
+        csvImport.setShortcut('Ctrl+Shift+I')
         csvImport.setStatusTip('Import Schema as first line of a comma-separated file')
-        csvImport.triggered.connect(lambda: importCSV(self.ui.schemaLine))
+        csvImport.triggered.connect(lambda: importCSV(self, self.ui.schemaLine))
 
         # Add modal dialog for choosing database type and path to driver & database
         dbImport = QAction(QIcon(), '&Import from existing database', self)
         dbImport.setShortcut('Ctrl+I')
         dbImport.setStatusTip('Import Schema from a database')
-        dbImport.triggered.connect(lambda: importCSV(self.ui.schemaLine))
+        dbImport.triggered.connect(lambda: importCSV(self, self.ui.schemaLine))
 
         exitAction = QAction(QIcon(), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(qApp.quit)
 
+        fileMenu.addAction(openAction)
         fileMenu.addAction(dbImport)
         fileMenu.addAction(csvImport)
         fileMenu.addAction(exitAction)
@@ -258,21 +267,25 @@ def addFD(source):
                 source.attrEntry.clear()
 
 
-def importCSV(schema):
+def importCSV(window, schema):
     """Import a schema from a comma-delimited file"""
     import csv
     global _attributes
 
-    with open('database.csv', 'r', newline='') as infile:            
-        if csv.Sniffer().has_header(infile.readline()):
-            infile.seek(0)
-            reader = csv.reader(infile)
-            text = next(reader) # -> [attr1, attr2, ..., attrN]
-            _attributes = [s.lower() for s in text]
-            for attr in _attributes:
-                schema.text = _attributes
-        else:
-            print("Invalid formatting")
+    fileName = QFileDialog.getOpenFileName(window, _translate("MainWindow", "Open File"), "",
+        _translate("MainWindow", "Comma-separated (*.csv);;Text files (*.txt);;All files (*.*)"))
+
+    if os.path.isfile(fileName[0]):
+        with open(fileName, 'r', newline='') as infile:            
+            if csv.Sniffer().has_header(infile.readline()):
+                infile.seek(0)
+                reader = csv.reader(infile)
+                text = next(reader) # -> [attr1, attr2, ..., attrN]
+                _attributes = [s.lower() for s in text]
+                for attr in _attributes:
+                    schema.text = _attributes
+            else:
+                print("Invalid formatting")
 
 
 
@@ -287,7 +300,7 @@ def export_cover(window, source):
         dependencies.append(source.data.item(i).text().replace("\t\u27F6\t", '-'))
 
     # Minimal cover  
-    data = '\r\n'.join(dependencies)    
+    data = '\n'.join(dependencies)    
 
     # Functional dependencies
     deps = []
@@ -300,9 +313,90 @@ def export_cover(window, source):
             outfile.write("Minimal Cover for Schema: ")
             outfile.write(window.ui.schemaLine.text() + "\n")
             outfile.write("With functional dependencies:")
-            outfile.write('\r\n'.join(deps) + "\n\n")
+            outfile.write(', '.join(deps) + "\n")
             outfile.write(data)
                                        
+
+def import_data(window):
+    """Import previously exported dataset"""
+    global _attributes
+    global _fds
+    global _cover
+    
+    dialog = QFileDialog(window, _translate("MainWindow", "Open File"), "",
+        _translate("MainWindow", "DB Design File (*.fdcover);;All files (*.*)"),
+                             options = 0)
+    dialog.setFileMode(QFileDialog.ExistingFile)
+    dialog.text = lambda x=dialog.result: dialog.selectedFiles()[0] if x() else None
+    #dialog.text = dialog.selectedFiles() if dialog.result() else None ##doesn't work
+    dialog.accepted.connect(lambda: dialog.text)
+    dialog.exec()
+
+    fileName = dialog.text()
+    if fileName is None:
+        return
+
+    if os.path.isfile(fileName):
+        with open(fileName, "r") as infile:
+            try:                
+                line1 = infile.readline()
+                schema = line1[:-1].split(":")[1][1:]
+                
+                line2 = infile.readline()
+                fds = line2[:-1].split(':')[1].split(', ')
+
+                cover = infile.read().split('\n')
+
+                attributes = [s.lower() for s in schema.split(',')]
+
+                for dep in fds:
+                    if not testFD(dep, attributes):
+                        raise DatabaseError("FD(s) contain attributes not in schema")
+
+                for fd in cover:
+                    if not testFD(fd, attributes):
+                        raise DatabaseError("FD(s) contain attributes not in schema")
+
+                if cover != []:
+                    import mincover
+                    ffds = [[dep for dep in fd.split('-')] for fd in fds]
+                    ffds = mincover.mincover(ffds)
+                    ffds = ["-".join([", ".join(a) for a in each]) for each in ffds]
+                    assert equality(cover, ffds)
+
+                _attributes = attributes
+                _fds = fds
+                _cover = cover
+
+                window.ui.fdText.data.clear()
+                window.ui.mincoverText.data.clear()
+
+                window.ui.schemaLine.setText(schema)
+
+                for dep in fds:
+                    text = dep.replace('-', "\t\u27F6\t")
+                    newFD = QStandardItem(text)            
+                    window.ui.fdText.data.appendRow(newFD)
+                    
+                for dep in cover:
+                    text = dep.replace('-', "\t\u27F6\t")
+                    newFD = QStandardItem(text)            
+                    window.ui.mincoverText.data.appendRow(newFD)
+                    
+            except (IndexError, DatabaseError, EqualityError) as e:
+                print(e)
+
+
+
+def testFD(fd, attributes):
+    """Test that fd only contains attributes listed in the schema"""
+
+    fd = str(fd).replace(' ', '')
+    if fd is not None:            
+        for attr in re.split('[,-]', fd):
+            if attr not in attributes:            
+                return False
+    return True
 
     ###################     Generator     ###################
 
@@ -318,7 +412,7 @@ def gen_cover(coverBox):
     ffds = [[dep for dep in fd.split('-')] for fd in _fds]
     
     cover = mincover.mincover(ffds)
-
+    
     # Format mincover output to match required output
     _cover = ["-".join([", ".join(a) for a in each]) for each in cover]
 
@@ -328,3 +422,18 @@ def gen_cover(coverBox):
         text = dep.replace('-', "\t\u27F6\t")
         newFD = QStandardItem(text)            
         coverBox.data.appendRow(newFD)
+
+#Dependencies of form ['a-b,c', 'a,b-c']
+def equality(set1, set2):
+    from collections import Counter
+
+    if Counter(set1) == Counter(set2):
+        return True
+    else:
+        raise EqualityError("Sets of FDs are not equivalent")
+
+class DatabaseError(Exception):
+    pass
+
+class EqualityError(Exception):
+    pass
