@@ -357,11 +357,12 @@ def import_data(window):
                     if not testFD(fd, attributes):
                         raise DatabaseError("FD(s) contain attributes not in schema")
 
-                import mincover
-                ffds = [[dep for dep in fd.split('-')] for fd in fds]
-                ffds = mincover.mincover(ffds)
-                ffds = ["-".join([", ".join(a) for a in each]) for each in ffds]
-                assert equality(cover, ffds)
+                if cover != []:
+                    import mincover
+                    ffds = [[dep for dep in fd.split('-')] for fd in fds]
+                    ffds = mincover.mincover(ffds)
+                    ffds = ["-".join([", ".join(a) for a in each]) for each in ffds]
+                    assert equality(cover, ffds)
 
                 _attributes = attributes
                 _fds = fds
@@ -382,7 +383,7 @@ def import_data(window):
                     newFD = QStandardItem(text)            
                     window.ui.mincoverText.data.appendRow(newFD)
                     
-            except (IndexError, DatabaseError) as e:
+            except (IndexError, DatabaseError, EqualityError) as e:
                 print(e)
 
 
@@ -429,7 +430,7 @@ def equality(set1, set2):
     if Counter(set1) == Counter(set2):
         return True
     else:
-        raise EqualityError
+        raise EqualityError("Sets of FDs are not equivalent")
 
 class DatabaseError(Exception):
     pass

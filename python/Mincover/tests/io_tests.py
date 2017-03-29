@@ -28,6 +28,7 @@ class OpenFileTest(unittest.TestCase):
         self.assertTrue(self.open_bad_file())
         self.assertTrue(self.open_bad_fds())
         self.assertTrue(self.open_bad_cover())
+        self.assertTrue(self.open_false_cover())
         self.assertTrue(self.open_good_file())
 
     def set_file(self, fileName):
@@ -85,6 +86,17 @@ class OpenFileTest(unittest.TestCase):
     def open_bad_cover(self):
         # write data to test file
         self.set_file("badcover.fdcover")
+        if core._attributes != []:
+            return False
+        if core._fds != []:
+            return False
+        if core._cover != []:
+            return False
+        return True
+
+    def open_false_cover(self):
+        # write data to test file
+        self.set_file("false.fdcover")
         if core._attributes != []:
             return False
         if core._fds != []:
