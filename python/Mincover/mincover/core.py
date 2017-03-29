@@ -62,9 +62,16 @@ class UI(QMainWindow):
     def addMenus(self):
         """Add customized menubar to the main window"""
         
-        menubar = self.menuBar()
-        fileMenu = menubar.addMenu('&File')
+        self.menu = self.menuBar()        
 
+        self.addFileMenu()
+        self.addToolsMenu()
+
+
+    def addFileMenu(self):
+
+        fileMenu = self.menu.addMenu('&File')
+        
         # Load previous instance option
         openAction = QAction(QIcon(), '&Open previous...', self)
         openAction.setShortcut('Ctrl+O')
@@ -93,6 +100,10 @@ class UI(QMainWindow):
         fileMenu.addAction(csvImport)
         fileMenu.addAction(exitAction)
 
+    def addToolsMenu(self):
+        
+        toolMenu = self.menu.addMenu('&Tools')
+        
 
     ###################     Callbacks   ###################
 
