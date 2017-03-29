@@ -110,11 +110,11 @@ class UI(QMainWindow):
     def addCallbacks(self):
         """Connect signals to appropriate callbacks"""
         
-        self.ui.addFDBtn.clicked.connect(self.get_fds)        
+        self.ui.editFDBtn.clicked.connect(self.get_fds)        
         self.ui.splitBtn.clicked.connect(self.split_fds)
         self.ui.clearBtn.clicked.connect(self.clear_fds)
 
-        self.ui.addSchemaBtn.clicked.connect(self.get_schema)
+        self.ui.editSchemaBtn.clicked.connect(self.get_schema)
         self.ui.genBtn.clicked.connect(lambda: gen_cover(self.ui.mincoverText))
         self.ui.saveBtn.clicked.connect(lambda: export_cover(self, self.ui.mincoverText))
 
