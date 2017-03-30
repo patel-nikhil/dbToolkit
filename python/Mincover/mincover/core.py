@@ -18,8 +18,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 from PyQt5 import QtCore
 
-
-from view.interface import Ui_MainWindow
+from view.ui_stacked import Ui_MainWindow
 from view.ui_input import Ui_Dialog
 
 import mincover
@@ -51,19 +50,25 @@ class UI(QMainWindow):
         self.setGeometry(300, 100, 450, 620)
         self.setWindowTitle('Minimal Cover Widget')
         #self.setWindowIcon(QIcon('icon.png'))
-
+        self.ui.stackedWidget.setCurrentIndex(0)
+        
+        self.page = lambda: self.ui.stackedWidget.currentIndex()
         self.addMenus()
-        self.addCallbacks()
+        self.addCallbacks()        
 
         initModel(self.ui.fdText)
         initModel(self.ui.mincoverText)
+
+        initModel(self.ui.fdText_2)
+        initModel(self.ui.mincoverText_2)
+        
         
 
     def addMenus(self):
         """Add customized menubar to the main window"""
         
         self.menu = self.menuBar()        
-
+        
         self.addFileMenu()
         self.addToolsMenu()
 
@@ -82,13 +87,13 @@ class UI(QMainWindow):
         csvImport = QAction(QIcon(), '&Import from CSV', self)
         csvImport.setShortcut('Ctrl+Shift+I')
         csvImport.setStatusTip('Import Schema as first line of a comma-separated file')
-        csvImport.triggered.connect(lambda: importCSV(self, self.ui.schemaLine))
+        csvImport.triggered.connect(lambda: importCSV(self, lambda pg=self.page: self.ui.schemaLine_2 if pg() else self.ui.schemaLine))
 
         # Add modal dialog for choosing database type and path to driver & database
         dbImport = QAction(QIcon(), '&Import from existing database', self)
         dbImport.setShortcut('Ctrl+I')
         dbImport.setStatusTip('Import Schema from a database')
-        dbImport.triggered.connect(lambda: importCSV(self, self.ui.schemaLine))
+        dbImport.triggered.connect(lambda: importCSV(self, lambda pg=self.page: self.ui.schemaLine_2 if pg() else self.ui.schemaLine))
 
         exitAction = QAction(QIcon(), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
@@ -111,12 +116,12 @@ class UI(QMainWindow):
         """Connect signals to appropriate callbacks"""
         
         self.ui.editFDBtn.clicked.connect(self.get_fds)        
-        self.ui.splitBtn.clicked.connect(self.split_fds)
-        self.ui.clearBtn.clicked.connect(self.clear_fds)
-
+        self.ui.splitFDBtn.clicked.connect(self.split_fds)
+        self.ui.clearFDBtn.clicked.connect(lambda pg=self.page: lambda: self.clear_fds(self.ui.fdText_2) if pg() else lambda: self.clear_fds(self.ui.fdText))
+        
         self.ui.editSchemaBtn.clicked.connect(self.get_schema)
-        self.ui.genBtn.clicked.connect(lambda: gen_cover(self.ui.mincoverText))
-        self.ui.saveBtn.clicked.connect(lambda: export_cover(self, self.ui.mincoverText))
+        self.ui.genCoverBtn.clicked.connect(lambda: gen_cover(self.ui.mincoverText))
+        self.ui.saveCoverBtn.clicked.connect(lambda: export_cover(self, self.ui.mincoverText))
 
 
     def get_schema(self):
@@ -129,14 +134,18 @@ class UI(QMainWindow):
         self.form.attrLabel.setText(_translate("Dialog", "Enter attribute name"))
         self.form.confirmBtn.clicked.connect(lambda: addAttr(self.form))
         self.form.clearBtn.clicked.connect(lambda: clearSchema(self.form))
-        self.form.buttonBox.accepted.connect(lambda: update(self.form, self.ui.schemaLine))
+        self.form.buttonBox.accepted.connect(lambda: update(self.form, lambda pg=self.page: self.ui.schemaLine_2 if pg() else self.ui.schemaLine))
         
         
         initModel(self.form.schemaView)
         for attr in _attributes:            
             newAttr = QStandardItem(attr)
             self.form.schemaView.data.appendRow(newAttr)
-        self.ui.schemaLine.setText(','.join(_attributes))
+            
+        if self.page():
+            self.ui.schemaLine_2.setText(','.join(_attributes))
+        else:
+            self.ui.schemaLine.setText(','.join(_attributes))
         self.window.exec_()
 
     def get_fds(self):
@@ -148,7 +157,7 @@ class UI(QMainWindow):
         self.form.attrLabel.setText(_translate("Dialog", "Enter Dependency in form attr1, attr2 - attr3, attr4"))
         self.form.confirmBtn.clicked.connect(lambda: addFD(self.form))
         self.form.clearBtn.clicked.connect(lambda: clearSchema(self.form))
-        self.form.buttonBox.accepted.connect(lambda: updateFD(self.form, self.ui.fdText))
+        self.form.buttonBox.accepted.connect(lambda: updateFD(self.form, lambda pg=self.page: self.ui.fdText_2 if pg() else self.ui.fdText))
         
         initModel(self.form.schemaView)
         
@@ -174,12 +183,12 @@ class UI(QMainWindow):
             self.ui.fdText.data.appendRow(newFD)
         
 
-    def clear_fds(self):
+    def clear_fds(self, fdBox):
         """Empty the set of functional dependencies"""
         global _fds
         
         _fds = []
-        self.ui.fdText.data.clear()    
+        fdBox.data.clear()
 
 
 
@@ -315,14 +324,14 @@ def export_cover(window, source):
 
     # Functional dependencies
     deps = []
-    for i in range(window.ui.fdText.data.rowCount()):
-        deps.append(window.ui.fdText.data.item(i).text().replace("\t\u27F6\t", "-"))
+    for i in range(window.ui.fdText_2.data.rowCount()):
+        deps.append(window.ui.fdText_2.data.item(i).text().replace("\t\u27F6\t", "-"))
 
     # Write to file
     if fileName is not None:
         with open(fileName[0], "w") as outfile:
             outfile.write("Minimal Cover for Schema: ")
-            outfile.write(window.ui.schemaLine.text() + "\n")
+            outfile.write(window.ui.schemaLine_2.text() + "\n")
             outfile.write("With functional dependencies:")
             outfile.write(', '.join(deps) + "\n")
             outfile.write(data)
