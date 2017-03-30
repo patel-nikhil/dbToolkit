@@ -291,9 +291,10 @@ def importCSV(window, schema):
     """Import a schema from a comma-delimited file"""
     import csv
     global _attributes
-    
-    fileName = QFileDialog.getOpenFileName(window, _translate("MainWindow", "Open File"), "",
-        _translate("MainWindow", "Comma-separated (*.csv);;Text files (*.txt);;All files (*.*)"))
+
+    fileName = getFile(window, 1)
+    if fileName is None:
+        return
     
     if os.path.isfile(fileName[0]):
         with open(fileName[0], 'r', newline='') as infile:
@@ -311,9 +312,10 @@ def importCSV(window, schema):
 def export_cover(window, source):
     """Export the minimal cover to file"""
 
-    fileName = QFileDialog.getSaveFileName(window, _translate("MainWindow", "Save File"), "",
-        _translate("MainWindow", "DB Design File (*.fdcover);;Comma-separated (*.csv);;Text files (*.txt);;All files (*.*)"))
-
+    fileName = getFile(window, 3)
+    if fileName is None:
+        return
+    
     dependencies = []
     for i in range(source.data.rowCount()):
         dependencies.append(source.data.item(i).text().replace("\t\u27F6\t", '-'))
@@ -326,15 +328,14 @@ def export_cover(window, source):
     for i in range(window.ui.fdText_2.data.rowCount()):
         deps.append(window.ui.fdText_2.data.item(i).text().replace("\t\u27F6\t", "-"))
 
-    # Write to file
-    if fileName is not None:
-        with open(fileName[0], "w") as outfile:
-            outfile.write("Minimal Cover for Schema: ")
-            outfile.write(window.ui.schemaLine_2.text() + "\n")
-            outfile.write("With functional dependencies:")
-            outfile.write(', '.join(deps) + "\n")
-            outfile.write(data)
-                                       
+    # Write to file   
+    with open(fileName, "w") as outfile:
+        outfile.write("Minimal Cover for Schema: ")
+        outfile.write(window.ui.schemaLine_2.text() + "\n")
+        outfile.write("With functional dependencies:")
+        outfile.write(', '.join(deps) + "\n")
+        outfile.write(data)
+                                    
 
 def import_data(window):
     """Import previously exported dataset"""
@@ -342,16 +343,7 @@ def import_data(window):
     global _fds
     global _cover
     
-    dialog = QFileDialog(window, _translate("MainWindow", "Open File"), "",
-        _translate("MainWindow", "DB Design File (*.fdcover);;All files (*.*)"),
-                             options = 0)
-    dialog.setFileMode(QFileDialog.ExistingFile)
-    dialog.text = lambda x=dialog.result: dialog.selectedFiles()[0] if x() else None
-    #dialog.text = dialog.selectedFiles() if dialog.result() else None ##doesn't work
-    dialog.accepted.connect(lambda: dialog.text)
-    dialog.exec()
-
-    fileName = dialog.text()
+    fileName = getFile(window, 0)
     if fileName is None:
         return
 
@@ -405,6 +397,49 @@ def import_data(window):
             except (IndexError, DatabaseError, EqualityError) as e:
                 print(e)
 
+
+def getFile(window, mode):
+    '''Prompt user for and return filename'''
+
+    # Load data
+    if mode == 0:
+        dialog = QFileDialog(window, _translate("MainWindow", "Open File"), "",
+            _translate("MainWindow", "DB Design File (*.fdcover);;All files (*.*)"),
+                             options = 0)
+        dialog.setFileMode(QFileDialog.ExistingFile)
+
+    # Load schema (csv)
+    elif mode == 1:
+        dialog = QFileDialog(window, _translate("MainWindow", "Open File"), "",
+            _translate("MainWindow", "Comma-separated file (*.csv);;All files (*.*)"),
+                             options = 0)
+        dialog.setFileMode(QFileDialog.ExistingFile)
+
+    # Load schema (db)
+    elif mode == 2:
+        dialog = QFileDialog(window, _translate("MainWindow", "Open File"), "",
+            _translate("MainWindow", "Sqlite Database (*.db);;All files (*.*)"),
+                             options = 0)
+        dialog.setFileMode(QFileDialog.ExistingFile)
+
+    # Save data
+    elif mode == 3:
+        dialog = QFileDialog(window, _translate("MainWindow", "Save File"), "",
+            _translate("MainWindow", "DB Design File (*.fdcover);;Plain text file (*.txt);;All files (*.*)"),
+                             options = 0)
+        dialog.setFileMode(QFileDialog.AnyFile)
+        
+    dialog.text = lambda x=dialog.result: dialog.selectedFiles()[0] if x() else None    
+    dialog.accepted.connect(lambda: dialog.text)
+    dialog.exec()
+    if mode == 3:
+        ext = dialog.selectedNameFilter()[:-1].split('*')[1]
+    else:
+        ext = ""
+    fileName = dialog.text()
+    if fileName is not None:
+        fileName += ext
+    return fileName
 
 
 def testFD(fd, attributes):
