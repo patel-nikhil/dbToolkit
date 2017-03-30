@@ -87,13 +87,13 @@ class UI(QMainWindow):
         csvImport = QAction(QIcon(), '&Import from CSV', self)
         csvImport.setShortcut('Ctrl+Shift+I')
         csvImport.setStatusTip('Import Schema as first line of a comma-separated file')
-        csvImport.triggered.connect(lambda: importCSV(self, lambda pg=self.page: self.ui.schemaLine_2 if pg() else self.ui.schemaLine))
+        csvImport.triggered.connect(lambda: importCSV(self, (self.ui.schemaLine_2 if self.page() else self.ui.schemaLine)))
 
         # Add modal dialog for choosing database type and path to driver & database
         dbImport = QAction(QIcon(), '&Import from existing database', self)
         dbImport.setShortcut('Ctrl+I')
         dbImport.setStatusTip('Import Schema from a database')
-        dbImport.triggered.connect(lambda: importCSV(self, lambda pg=self.page: self.ui.schemaLine_2 if pg() else self.ui.schemaLine))
+        dbImport.triggered.connect(lambda pg=self.page: lambda: importCSV(self, self.ui.schemaLine_2) if pg() else lambda: importCSV(self, self.ui.schemaLine_2))
 
         exitAction = QAction(QIcon(), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
@@ -291,19 +291,18 @@ def importCSV(window, schema):
     """Import a schema from a comma-delimited file"""
     import csv
     global _attributes
-
+    
     fileName = QFileDialog.getOpenFileName(window, _translate("MainWindow", "Open File"), "",
         _translate("MainWindow", "Comma-separated (*.csv);;Text files (*.txt);;All files (*.*)"))
-
+    
     if os.path.isfile(fileName[0]):
-        with open(fileName, 'r', newline='') as infile:            
+        with open(fileName[0], 'r', newline='') as infile:
             if csv.Sniffer().has_header(infile.readline()):
                 infile.seek(0)
                 reader = csv.reader(infile)
                 text = next(reader) # -> [attr1, attr2, ..., attrN]
                 _attributes = [s.lower() for s in text]
-                for attr in _attributes:
-                    schema.text = _attributes
+                schema.setText(','.join(_attributes))
             else:
                 print("Invalid formatting")
 
