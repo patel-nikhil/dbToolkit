@@ -587,15 +587,40 @@ def test_cover(fdBox, coverBox):
 
     coverFDs = [[dep for dep in fd.split('-')] for fd in cover]
 
-    # Compare closures from set of FDs and minimal cover
-    assert equality(mincover.find_closures(ffds), mincover.find_closures(coverFDs))
+    try:
 
-    ffds = ["-".join([", ".join(a) for a in fd]) for fd in ffds]
+        # Compare closures from set of FDs and minimal cover
+        assert equality(mincover.find_closures(ffds), mincover.find_closures(coverFDs))
 
-    # Compare the specified and generated covers for equality
-    assert equality(cover, ffds)
+        ffds = ["-".join([", ".join(a) for a in fd]) for fd in ffds]
 
-    return True
+        # Compare the specified and generated covers for equality
+        assert equality(cover, ffds)
+
+
+        from PyQt5.QtWidgets import QMessageBox
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle("Information")
+        msgBox.setIcon(QMessageBox.NoIcon)
+        msgBox.setText("The set of entered FDs form a minimal cover")
+        msgBox.exec_()
+    
+    except EqualityError:
+
+        from PyQt5.QtWidgets import QMessageBox
+        msgBox = QMessageBox()
+        msgBox.addButton(QMessageBox.Yes)
+        msgBox.addButton(QMessageBox.No)
+        msgBox.addButton(QMessageBox.Cancel)
+        msgBox.setDefaultButton(QMessageBox.Cancel)
+        msgBox.setWindowTitle("Information")
+        msgBox.setIcon(QMessageBox.Information)
+        msgBox.setText('''The set of entered FDs do not form a minimal cover
+        Would you like to compute a minimal cover?''')
+        nextAction = msgBox.exec_()
+
+        if nextAction == QMessageBox.Yes:
+            gen_cover(coverBox)
 
 
 def equality(set1, set2):
