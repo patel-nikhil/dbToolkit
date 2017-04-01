@@ -18,8 +18,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 from PyQt5 import QtCore
 
-
-from view.interface import Ui_MainWindow
+from view.ui_stacked import Ui_MainWindow
 from view.ui_input import Ui_Dialog
 
 import mincover
@@ -51,20 +50,34 @@ class UI(QMainWindow):
         self.setGeometry(300, 100, 450, 620)
         self.setWindowTitle('Minimal Cover Widget')
         #self.setWindowIcon(QIcon('icon.png'))
-
+        self.ui.stackedWidget.setCurrentIndex(0)
+        
+        self.page = lambda: self.ui.stackedWidget.currentIndex()
         self.addMenus()
-        self.addCallbacks()
+        self.addPageOneCallbacks()
+        self.addPageTwoCallbacks()
 
         initModel(self.ui.fdText)
         initModel(self.ui.mincoverText)
+
+        initModel(self.ui.fdText_2)
+        initModel(self.ui.mincoverText_2)
+        
         
 
     def addMenus(self):
         """Add customized menubar to the main window"""
         
-        menubar = self.menuBar()
-        fileMenu = menubar.addMenu('&File')
+        self.menu = self.menuBar()        
+        
+        self.addFileMenu()
+        self.addToolsMenu()
 
+
+    def addFileMenu(self):
+
+        fileMenu = self.menu.addMenu('&File')
+        
         # Load previous instance option
         openAction = QAction(QIcon(), '&Open previous...', self)
         openAction.setShortcut('Ctrl+O')
@@ -75,13 +88,13 @@ class UI(QMainWindow):
         csvImport = QAction(QIcon(), '&Import from CSV', self)
         csvImport.setShortcut('Ctrl+Shift+I')
         csvImport.setStatusTip('Import Schema as first line of a comma-separated file')
-        csvImport.triggered.connect(lambda: importCSV(self, self.ui.schemaLine))
+        csvImport.triggered.connect(lambda: importCSV(self, (self.ui.schemaLine_2 if self.page() else self.ui.schemaLine)))
 
         # Add modal dialog for choosing database type and path to driver & database
         dbImport = QAction(QIcon(), '&Import from existing database', self)
         dbImport.setShortcut('Ctrl+I')
         dbImport.setStatusTip('Import Schema from a database')
-        dbImport.triggered.connect(lambda: importCSV(self, self.ui.schemaLine))
+        dbImport.triggered.connect(lambda pg=self.page: lambda: importCSV(self, self.ui.schemaLine_2) if pg() else lambda: importCSV(self, self.ui.schemaLine_2))
 
         exitAction = QAction(QIcon(), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
@@ -93,19 +106,33 @@ class UI(QMainWindow):
         fileMenu.addAction(csvImport)
         fileMenu.addAction(exitAction)
 
+    def addToolsMenu(self):
+        
+        toolMenu = self.menu.addMenu('&Tools')
+        
 
     ###################     Callbacks   ###################
 
-    def addCallbacks(self):
+    def addPageOneCallbacks(self):
         """Connect signals to appropriate callbacks"""
+        self.ui.editFDBtn.clicked.connect(self.get_fds)        
+        self.ui.splitFDBtn.clicked.connect(self.split_fds)
+        self.ui.clearFDBtn.clicked.connect(lambda: self.clear_fds(self.ui.fdText))
         
-        self.ui.addFDBtn.clicked.connect(self.get_fds)        
-        self.ui.splitBtn.clicked.connect(self.split_fds)
-        self.ui.clearBtn.clicked.connect(self.clear_fds)
+        self.ui.editSchemaBtn.clicked.connect(self.get_schema)
+        self.ui.genCoverBtn.clicked.connect(lambda: gen_cover(self.ui.mincoverText))
+        self.ui.saveCoverBtn.clicked.connect(lambda: export_cover(self, self.ui.mincoverText))
 
-        self.ui.addSchemaBtn.clicked.connect(self.get_schema)
-        self.ui.genBtn.clicked.connect(lambda: gen_cover(self.ui.mincoverText))
-        self.ui.saveBtn.clicked.connect(lambda: export_cover(self, self.ui.mincoverText))
+        
+    def addPageTwoCallbacks(self):
+        """Connect signals to appropriate callbacks"""
+        self.ui.editFDBtn_2.clicked.connect(self.get_fds)        
+        self.ui.clearFDBtn_2.clicked.connect(lambda: self.clear_fds(self.ui.fdText_2))
+        self.ui.editSchemaBtn_2.clicked.connect(self.get_schema)
+        
+        self.ui.editCoverBtn.clicked.connect(self.get_cover)
+        self.ui.clearCoverBtn.clicked.connect(lambda: self.clear_cover(self.ui.mincoverText_2))
+        self.ui.testCoverBtn.clicked.connect(lambda: test_cover(self.ui.fdText_2, self.ui.mincoverText_2))
 
 
     def get_schema(self):
@@ -118,14 +145,18 @@ class UI(QMainWindow):
         self.form.attrLabel.setText(_translate("Dialog", "Enter attribute name"))
         self.form.confirmBtn.clicked.connect(lambda: addAttr(self.form))
         self.form.clearBtn.clicked.connect(lambda: clearSchema(self.form))
-        self.form.buttonBox.accepted.connect(lambda: update(self.form, self.ui.schemaLine))
+        self.form.buttonBox.accepted.connect(lambda: update(self.form, lambda pg=self.page: self.ui.schemaLine_2 if pg() else self.ui.schemaLine))
         
         
         initModel(self.form.schemaView)
         for attr in _attributes:            
             newAttr = QStandardItem(attr)
             self.form.schemaView.data.appendRow(newAttr)
-        self.ui.schemaLine.setText(','.join(_attributes))
+            
+        if self.page():
+            self.ui.schemaLine_2.setText(','.join(_attributes))
+        else:
+            self.ui.schemaLine.setText(','.join(_attributes))
         self.window.exec_()
 
     def get_fds(self):
@@ -137,11 +168,30 @@ class UI(QMainWindow):
         self.form.attrLabel.setText(_translate("Dialog", "Enter Dependency in form attr1, attr2 - attr3, attr4"))
         self.form.confirmBtn.clicked.connect(lambda: addFD(self.form))
         self.form.clearBtn.clicked.connect(lambda: clearSchema(self.form))
-        self.form.buttonBox.accepted.connect(lambda: updateFD(self.form, self.ui.fdText))
+        self.form.buttonBox.accepted.connect(lambda: updateFD(self.form, lambda pg=self.page: self.ui.fdText_2 if pg() else self.ui.fdText))
         
         initModel(self.form.schemaView)
         
         for dep in _fds:
+            text = dep.replace('-', "\t\u27F6\t")
+            newFD = QStandardItem(text)            
+            self.form.schemaView.data.appendRow(newFD)
+        self.window.exec_()
+
+    def get_cover(self):
+        """Launch manual entry dialog for minimal cover FDs"""
+        
+        self.window = QDialog()
+        self.form = Ui_Dialog()     
+        self.form.setupUi(self.window)        
+        self.form.attrLabel.setText(_translate("Dialog", "Enter Dependency in form attr1, attr2 - attr3, attr4"))
+        self.form.confirmBtn.clicked.connect(lambda: checkFD(self, self.form))
+        self.form.clearBtn.clicked.connect(lambda: clearCover(self.form))
+        self.form.buttonBox.accepted.connect(lambda: updateCover(self.form, self.ui.mincoverText_2))
+        
+        initModel(self.form.schemaView)
+        
+        for dep in _cover:
             text = dep.replace('-', "\t\u27F6\t")
             newFD = QStandardItem(text)            
             self.form.schemaView.data.appendRow(newFD)
@@ -163,14 +213,19 @@ class UI(QMainWindow):
             self.ui.fdText.data.appendRow(newFD)
         
 
-    def clear_fds(self):
+    def clear_fds(self, fdBox):
         """Empty the set of functional dependencies"""
         global _fds
         
         _fds = []
-        self.ui.fdText.data.clear()    
+        fdBox.data.clear()
 
-
+    def clear_cover(self, coverBox):
+        """Empty the fds that comprise the proposed minimal cover"""
+        global _cover
+        
+        _cover = []
+        coverBox.data.clear()
 
 
 def initModel(listView):
@@ -208,6 +263,22 @@ def updateFD(source, fdBox):
         text = dep.replace('-', "\t\u27F6\t")
         newFD = QStandardItem(text)            
         fdBox.data.appendRow(newFD)
+
+
+def updateCover(source, coverBox):
+    """Update the proposed minimal cover displayed in the interface"""
+    global _cover
+    _cover = []
+    
+    for i in range(source.schemaView.data.rowCount()):
+        _cover.append(source.schemaView.data.item(i).text().replace("\t\u27F6\t", "-"))
+    
+    coverBox.data.clear()
+    for dep in _cover:
+        text = dep.replace('-', "\t\u27F6\t")
+        newFD = QStandardItem(text)            
+        coverBox.data.appendRow(newFD)
+        
 
     ###################     Entry   ###################
 
@@ -266,24 +337,49 @@ def addFD(source):
                 source.schemaView.data.appendRow(newFD)
                 source.attrEntry.clear()
 
+def checkFD(window, source):
+    """Add FDs to minimal cover"""
+    
+    # Functional dependencies
+    deps = []
+    for i in range(window.ui.fdText_2.data.rowCount()):
+        deps.append(window.ui.fdText_2.data.item(i).text().replace("\t\u27F6\t", "-"))
+
+    inputText = source.attrEntry.text()
+    fd = str(inputText).replace(' ', '') # narrow the scope using regex
+    fd = re.match("\w+[,\w]*-\w+[,\w]*", fd)
+
+    if fd is not None:
+        if fd.groups() == ():
+            text = fd.group(0)
+
+            if text not in deps:
+                return
+            else:
+                text = text.replace('-', "\t\u27F6\t")
+                newFD = QStandardItem(text)            
+                source.schemaView.data.appendRow(newFD)
+                source.attrEntry.clear()
+
+    
 
 def importCSV(window, schema):
     """Import a schema from a comma-delimited file"""
     import csv
     global _attributes
-
-    fileName = QFileDialog.getOpenFileName(window, _translate("MainWindow", "Open File"), "",
-        _translate("MainWindow", "Comma-separated (*.csv);;Text files (*.txt);;All files (*.*)"))
-
-    if os.path.isfile(fileName[0]):
-        with open(fileName, 'r', newline='') as infile:            
+    
+    fileName = getFile(window, 1)
+    if fileName is None:
+        return
+    
+    if os.path.isfile(fileName):
+        with open(fileName, 'r', newline='') as infile:
             if csv.Sniffer().has_header(infile.readline()):
                 infile.seek(0)
                 reader = csv.reader(infile)
                 text = next(reader) # -> [attr1, attr2, ..., attrN]
                 _attributes = [s.lower() for s in text]
-                for attr in _attributes:
-                    schema.text = _attributes
+                schema.setText(','.join(_attributes))
             else:
                 print("Invalid formatting")
 
@@ -292,9 +388,10 @@ def importCSV(window, schema):
 def export_cover(window, source):
     """Export the minimal cover to file"""
 
-    fileName = QFileDialog.getSaveFileName(window, _translate("MainWindow", "Save File"), "",
-        _translate("MainWindow", "DB Design File (*.fdcover);;Comma-separated (*.csv);;Text files (*.txt);;All files (*.*)"))
-
+    fileName = getFile(window, 3)
+    if fileName is None:
+        return
+    
     dependencies = []
     for i in range(source.data.rowCount()):
         dependencies.append(source.data.item(i).text().replace("\t\u27F6\t", '-'))
@@ -307,15 +404,14 @@ def export_cover(window, source):
     for i in range(window.ui.fdText.data.rowCount()):
         deps.append(window.ui.fdText.data.item(i).text().replace("\t\u27F6\t", "-"))
 
-    # Write to file
-    if fileName is not None:
-        with open(fileName[0], "w") as outfile:
-            outfile.write("Minimal Cover for Schema: ")
-            outfile.write(window.ui.schemaLine.text() + "\n")
-            outfile.write("With functional dependencies:")
-            outfile.write(', '.join(deps) + "\n")
-            outfile.write(data)
-                                       
+    # Write to file   
+    with open(fileName, "w") as outfile:
+        outfile.write("Minimal Cover for Schema: ")
+        outfile.write(window.ui.schemaLine.text() + "\n")
+        outfile.write("With functional dependencies:")
+        outfile.write(', '.join(deps) + "\n")
+        outfile.write(data)
+                                    
 
 def import_data(window):
     """Import previously exported dataset"""
@@ -323,19 +419,10 @@ def import_data(window):
     global _fds
     global _cover
     
-    dialog = QFileDialog(window, _translate("MainWindow", "Open File"), "",
-        _translate("MainWindow", "DB Design File (*.fdcover);;All files (*.*)"),
-                             options = 0)
-    dialog.setFileMode(QFileDialog.ExistingFile)
-    dialog.text = lambda x=dialog.result: dialog.selectedFiles()[0] if x() else None
-    #dialog.text = dialog.selectedFiles() if dialog.result() else None ##doesn't work
-    dialog.accepted.connect(lambda: dialog.text)
-    dialog.exec()
-
-    fileName = dialog.text()
+    fileName = getFile(window, 0)
     if fileName is None:
         return
-
+    
     if os.path.isfile(fileName):
         with open(fileName, "r") as infile:
             try:                
@@ -367,25 +454,83 @@ def import_data(window):
                 _attributes = attributes
                 _fds = fds
                 _cover = cover
+                
+                if window.page():
+                    window.ui.fdText_2.data.clear()
+                    window.ui.mincoverText_2.data.clear()
+                    window.ui.schemaLine_2.setText(schema)
 
-                window.ui.fdText.data.clear()
-                window.ui.mincoverText.data.clear()
-
-                window.ui.schemaLine.setText(schema)
-
-                for dep in fds:
-                    text = dep.replace('-', "\t\u27F6\t")
-                    newFD = QStandardItem(text)            
-                    window.ui.fdText.data.appendRow(newFD)
+                    for dep in fds:
+                        text = dep.replace('-', "\t\u27F6\t")
+                        newFD = QStandardItem(text)            
+                        window.ui.fdText_2.data.appendRow(newFD)
                     
-                for dep in cover:
-                    text = dep.replace('-', "\t\u27F6\t")
-                    newFD = QStandardItem(text)            
-                    window.ui.mincoverText.data.appendRow(newFD)
+                    for dep in cover:
+                        text = dep.replace('-', "\t\u27F6\t")
+                        newFD = QStandardItem(text)            
+                        window.ui.mincoverText_2.data.appendRow(newFD)
+                else:
+                    window.ui.fdText.data.clear()
+                    window.ui.mincoverText.data.clear()
+                    window.ui.schemaLine.setText(schema)
+                    
+
+                    for dep in fds:
+                        text = dep.replace('-', "\t\u27F6\t")
+                        newFD = QStandardItem(text)            
+                        window.ui.fdText.data.appendRow(newFD)
+                    
+                    for dep in cover:
+                        text = dep.replace('-', "\t\u27F6\t")
+                        newFD = QStandardItem(text)            
+                        window.ui.mincoverText.data.appendRow(newFD)
                     
             except (IndexError, DatabaseError, EqualityError) as e:
                 print(e)
 
+
+def getFile(window, mode):
+    """Prompt user for and return filename"""
+
+    # Load data
+    if mode == 0:
+        dialog = QFileDialog(window, _translate("MainWindow", "Open File"), "",
+            _translate("MainWindow", "DB Design File (*.fdcover);;All files (*.*)"),
+                             options = 0)
+        dialog.setFileMode(QFileDialog.ExistingFile)
+
+    # Load schema (csv)
+    elif mode == 1:
+        dialog = QFileDialog(window, _translate("MainWindow", "Open File"), "",
+            _translate("MainWindow", "Comma-separated file (*.csv);;All files (*.*)"),
+                             options = 0)
+        dialog.setFileMode(QFileDialog.ExistingFile)
+
+    # Load schema (db)
+    elif mode == 2:
+        dialog = QFileDialog(window, _translate("MainWindow", "Open File"), "",
+            _translate("MainWindow", "Sqlite Database (*.db);;All files (*.*)"),
+                             options = 0)
+        dialog.setFileMode(QFileDialog.ExistingFile)
+
+    # Save data
+    elif mode == 3:
+        dialog = QFileDialog(window, _translate("MainWindow", "Save File"), "",
+            _translate("MainWindow", "DB Design File (*.fdcover);;Plain text file (*.txt);;All files (*.*)"),
+                             options = 0)
+        dialog.setFileMode(QFileDialog.AnyFile)
+        
+    dialog.text = lambda x=dialog.result: dialog.selectedFiles()[0] if x() else None    
+    dialog.accepted.connect(lambda: dialog.text)
+    dialog.exec_()
+    if mode == 3:
+        ext = dialog.selectedNameFilter()[:-1].split('*')[1]
+    else:
+        ext = ""
+    fileName = dialog.text()
+    if fileName is not None:
+        fileName += ext
+    return fileName
 
 
 def testFD(fd, attributes):
@@ -423,10 +568,66 @@ def gen_cover(coverBox):
         newFD = QStandardItem(text)            
         coverBox.data.appendRow(newFD)
 
-#Dependencies of form ['a-b,c', 'a,b-c']
+def test_cover(fdBox, coverBox):
+    """Test the list of FDs in the cover box against a minimal cover"""
+    import mincover
+
+    # Specified FDs
+    fds = []
+    for i in range(fdBox.data.rowCount()):
+        fds.append(fdBox.data.item(i).text().replace("\t\u27F6\t", '-'))
+
+    # Proposed cover
+    cover = []
+    for i in range(coverBox.data.rowCount()):
+        cover.append(coverBox.data.item(i).text().replace("\t\u27F6\t", "-"))
+        
+    ffds = [[dep for dep in fd.split('-')] for fd in fds]
+    ffds = mincover.mincover(ffds)
+
+    coverFDs = [[dep for dep in fd.split('-')] for fd in cover]
+
+    try:
+
+        # Compare closures from set of FDs and minimal cover
+        assert equality(mincover.find_closures(ffds), mincover.find_closures(coverFDs))
+
+        ffds = ["-".join([", ".join(a) for a in fd]) for fd in ffds]
+
+        # Compare the specified and generated covers for equality
+        assert equality(cover, ffds)
+
+
+        from PyQt5.QtWidgets import QMessageBox
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle("Information")
+        msgBox.setIcon(QMessageBox.NoIcon)
+        msgBox.setText("The set of entered FDs form a minimal cover")
+        msgBox.exec_()
+    
+    except EqualityError:
+
+        from PyQt5.QtWidgets import QMessageBox
+        msgBox = QMessageBox()
+        msgBox.addButton(QMessageBox.Yes)
+        msgBox.addButton(QMessageBox.No)
+        msgBox.addButton(QMessageBox.Cancel)
+        msgBox.setDefaultButton(QMessageBox.Cancel)
+        msgBox.setWindowTitle("Information")
+        msgBox.setIcon(QMessageBox.Information)
+        msgBox.setText('''The set of entered FDs do not form a minimal cover
+        Would you like to compute a minimal cover?''')
+        nextAction = msgBox.exec_()
+
+        if nextAction == QMessageBox.Yes:
+            gen_cover(coverBox)
+
+
 def equality(set1, set2):
+    """Compares two sets of functional dependencies for equality"""
     from collections import Counter
 
+    #Dependencies of form ['a-b,c', 'a,b-c']
     if Counter(set1) == Counter(set2):
         return True
     else:

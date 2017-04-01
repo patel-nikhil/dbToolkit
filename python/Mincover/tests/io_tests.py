@@ -11,7 +11,7 @@ _translate = QtCore.QCoreApplication.translate
 app = QApplication(sys.argv)
 
 
-class OpenFileTest(unittest.TestCase):
+class LoadFileTests(unittest.TestCase):
     '''This class contains the methods for testing input/output operations'''
 
     def setUp(self):
@@ -123,15 +123,9 @@ class OpenFileTest(unittest.TestCase):
         core._cover = []
 
 
-
-
-
-
-
 def inject(window, fileName):
     window.text = lambda: fileName
     window.close()
-
 
 
 if __name__ == "__main__":
@@ -141,4 +135,10 @@ if __name__ == "__main__":
     sys.path.append(srcdir)
 
     import core
-    unittest.main()
+
+    testSuite = unittest.makeSuite(LoadFileTests, 'test')
+    runner = unittest.TextTestRunner()
+    runner.run(testSuite)
+    #testSuite.addTest(CoverEqualityTests("test_load_fds"))
+    
+    #unittest.main()
