@@ -18,7 +18,7 @@ import copy
 import pprint
 
 
-__all__ = ["split_rhs", "mincover"]
+__all__ = ["find_closures", "split_rhs", "mincover"]
 
 def sizeof(attr_list):
     """Return the number of attributes in the given sequence"""
