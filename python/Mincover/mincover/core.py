@@ -109,9 +109,60 @@ class UI(QMainWindow):
     def addToolsMenu(self):
         
         toolMenu = self.menu.addMenu('&Tools')
+
+        # Load previous instance option
+        page1 = QAction(QIcon(), '&Cover Generation Mode', self)
+        page1.setShortcut('Ctrl+T')
+        page1.setStatusTip('Switch to interface for generating minimal cover')
+        page1.triggered.connect(self.goToPage1)
+
+        # Load previous instance option
+        page2 = QAction(QIcon(), '&Cover Testing Mode', self)
+        page2.setShortcut('Ctrl+T')
+        page2.setStatusTip('Switch to interface for testing minimal cover')
+        page2.triggered.connect(self.goToPage2)
+
+        toolMenu.addAction(page1)
+        toolMenu.addAction(page2)
         
 
     ###################     Callbacks   ###################
+
+    def clear_all(self):
+        self.ui.fdText.data.clear()
+        self.ui.fdText_2.data.clear()
+        self.ui.mincoverText.data.clear()
+        self.ui.mincoverText_2.data.clear()
+
+    def goToPage1(self):
+        global _fds
+        
+        self.clear_all()
+        self.ui.schemaLine.setText(self.ui.schemaLine_2.text())
+        for dep in _fds:
+            text = dep.replace('-', "\t\u27F6\t")
+            newFD = QStandardItem(text)            
+            self.ui.fdText.data.appendRow(newFD)
+        self.ui.stackedWidget.setCurrentIndex(0)
+
+    def goToPage2(self):
+        global _fds
+        global _cover
+                                
+        self.clear_all()
+        self.ui.schemaLine_2.setText(self.ui.schemaLine.text())
+        for dep in _fds:
+            text = dep.replace('-', "\t\u27F6\t")
+            newFD = QStandardItem(text)            
+            self.ui.fdText_2.data.appendRow(newFD)
+
+        for dep in _cover:
+            text = dep.replace('-', "\t\u27F6\t")
+            newFD = QStandardItem(text)            
+            self.ui.mincoverText_2.data.appendRow(newFD)
+        self.ui.stackedWidget.setCurrentIndex(1)
+
+                                
 
     def addPageOneCallbacks(self):
         """Connect signals to appropriate callbacks"""
