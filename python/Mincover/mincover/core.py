@@ -50,7 +50,7 @@ class UI(QMainWindow):
         self.setGeometry(300, 100, 450, 620)
         self.setWindowTitle('Minimal Cover Widget')
         #self.setWindowIcon(QIcon('icon.png'))
-        self.ui.stackedWidget.setCurrentIndex(1)
+        self.ui.stackedWidget.setCurrentIndex(0)
         
         self.page = lambda: self.ui.stackedWidget.currentIndex()
         self.addMenus()
