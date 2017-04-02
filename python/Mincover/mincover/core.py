@@ -427,6 +427,8 @@ def importCSV(window, schema):
     """Import a schema from a comma-delimited file"""
     import csv
     global _attributes
+    global _fds
+    global _cover
     
     fileName = getFile(window, 1)
     if fileName is None:
@@ -441,6 +443,8 @@ def importCSV(window, schema):
                 _attributes = [s for s in text]
                 schema.setText(','.join(_attributes))
                 window.clear_all()
+                _fds = []
+                _cover = []
             else:
                 print("Invalid formatting")
 
@@ -448,7 +452,9 @@ def importCSV(window, schema):
 def importFile(window, schema):
     """Import a schema from a character-delimited file"""
     global _attributes
-    
+    global _fds
+    global _cover
+        
     dialog = QDialog()
     inDialog = charDialog()
     inDialog.setupUi(dialog)    
@@ -471,6 +477,8 @@ def importFile(window, schema):
             _attributes = attrs
             schema.setText(','.join(_attributes))
             window.clear_all()
+            _fds = []
+            _cover = []
 
 def export_cover(window, source):
     """Export the minimal cover to file"""
