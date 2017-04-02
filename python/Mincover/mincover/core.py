@@ -440,6 +440,7 @@ def importCSV(window, schema):
                 text = next(reader) # -> [attr1, attr2, ..., attrN]                
                 _attributes = [s for s in text]
                 schema.setText(','.join(_attributes))
+                window.clear_all()
             else:
                 print("Invalid formatting")
 
@@ -469,6 +470,7 @@ def importFile(window, schema):
             attrs = text.split(sep)
             _attributes = attrs
             schema.setText(','.join(_attributes))
+            window.clear_all()
 
 def export_cover(window, source):
     """Export the minimal cover to file"""
