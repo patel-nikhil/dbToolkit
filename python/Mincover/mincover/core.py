@@ -437,8 +437,8 @@ def importCSV(window, schema):
             if csv.Sniffer().has_header(infile.readline()):
                 infile.seek(0)
                 reader = csv.reader(infile)
-                text = next(reader) # -> [attr1, attr2, ..., attrN]
-                _attributes = [s.lower() for s in text]
+                text = next(reader) # -> [attr1, attr2, ..., attrN]                
+                _attributes = [s for s in text]
                 schema.setText(','.join(_attributes))
             else:
                 print("Invalid formatting")
@@ -447,16 +447,16 @@ def importCSV(window, schema):
 def importFile(window, schema):
     """Import a schema from a character-delimited file"""
     global _attributes
-
+    
     dialog = QDialog()
     inDialog = charDialog()
-    inDialog.setupUi(dialog)
-    inDialog.text = lambda x=dialog.result: inDialog.delim.text() if x() else None    
-    dialog.accepted.connect(inDialog.text)
+    inDialog.setupUi(dialog)    
+    dialog.text = lambda x=dialog.result: inDialog.delim.text() if x() else None    
+    dialog.accepted.connect(dialog.text)
     dialog.exec_()
 
-    sep = inDialog.text()
-    if sep is None or sep == " ":
+    sep = dialog.text()
+    if sep is None or sep == "":
         return
     
     fileName = getFile(window, 3)
@@ -464,10 +464,10 @@ def importFile(window, schema):
         return
 
     if os.path.isfile(fileName):
-        with open(fileName, 'r', newline='') as infile:            
-            text = infile.readline() # -> [attr1, attr2, ..., attrN]
+        with open(fileName, 'r') as infile:            
+            text = infile.readline()[:-1] # -> [attr1, attr2, ..., attrN]
             attrs = text.split(sep)
-            _attributes = [s for s in attrs]
+            _attributes = attrs
             schema.setText(','.join(_attributes))
 
 def export_cover(window, source):

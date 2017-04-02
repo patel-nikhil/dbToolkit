@@ -14,12 +14,15 @@ app = QApplication(sys.argv)
 class LoadFileTests(unittest.TestCase):
     '''This class contains the methods for testing input/output operations'''
 
-    def setUp(self):
+    gui = None
+
+    @classmethod
+    def setUpClass(cls):
         '''Instantiate the gui'''
         from PyQt5.QtCore import QEvent
         from PyQt5.QtGui import QKeyEvent
         
-        self.gui = core.UI()
+        LoadFileTests.gui = core.UI()
 
 
     def test_open_save_file(self):        
@@ -32,10 +35,10 @@ class LoadFileTests(unittest.TestCase):
         self.assertTrue(self.open_good_file())
 
     def set_file(self, fileName):
-        QTest.qWaitForWindowActive(self.gui)
+        QTest.qWaitForWindowActive(LoadFileTests.gui)
         QtCore.QTimer.singleShot(2000, lambda: inject(QApplication.activeModalWidget(), fileName))
-        QTest.keyPress(self.gui, Qt.Key_O, Qt.ControlModifier)
-        QTest.keyRelease(self.gui, Qt.Key_O, Qt.ControlModifier)
+        QTest.keyPress(LoadFileTests.gui, Qt.Key_O, Qt.ControlModifier)
+        QTest.keyRelease(LoadFileTests.gui, Qt.Key_O, Qt.ControlModifier)
 
 
     def open_no_file(self):
@@ -122,6 +125,77 @@ class LoadFileTests(unittest.TestCase):
         core._fds = []
         core._cover = []
 
+    @classmethod
+    def tearDownClass(cls):
+        LoadFileTests.gui.destroy()
+
+
+class ReadFileTests(unittest.TestCase):
+    '''This class contains the methods for testing file import operations'''
+
+    gui = None
+
+    @classmethod
+    def setUpClass(cls):
+        '''Instantiate the gui'''
+        from PyQt5.QtCore import QEvent
+        from PyQt5.QtGui import QKeyEvent
+        
+        ReadFileTests.gui = core.UI()
+
+    def set_csv(self, fileName):
+        QTest.qWaitForWindowActive(ReadFileTests.gui)
+        QtCore.QTimer.singleShot(2000, lambda: inject(QApplication.activeModalWidget(), fileName))
+        QTest.keyPress(LoadFileTests.gui, Qt.Key_I, Qt.ControlModifier | Qt.ShiftModifier)        
+        QTest.keyRelease(LoadFileTests.gui, Qt.Key_I, Qt.ControlModifier | Qt.ShiftModifier)        
+    
+    def set_file(self, delim, fileName):
+        QTest.qWaitForWindowActive(ReadFileTests.gui)
+        QtCore.QTimer.singleShot(1000, lambda: inject(QApplication.activeModalWidget(), delim))
+        QtCore.QTimer.singleShot(2000, lambda: inject(QApplication.activeModalWidget(), fileName))
+        QTest.keyPress(ReadFileTests.gui, Qt.Key_F, Qt.ControlModifier | Qt.ShiftModifier)
+        QTest.keyRelease(ReadFileTests.gui, Qt.Key_F, Qt.ControlModifier | Qt.ShiftModifier)        
+
+    def test_read_good_csv(self):
+        self.set_csv("good.csv")
+        self.assertEqual(core._attributes,['name', 'manf'])
+        self.assertEqual(ReadFileTests.gui.ui.schemaLine.text(),"name,manf")    
+
+    def test_read_bad_csv(self):
+        self.set_csv("bad.csv")
+        self.assertEqual(core._attributes,['Minimal Cover for Schema: abc'])
+        self.assertEqual(ReadFileTests.gui.ui.schemaLine.text(), 'Minimal Cover for Schema: abc')
+
+    def test_read_no_csv(self):
+        self.set_csv("no.csv")
+        self.assertEqual(core._attributes, [])
+        self.assertEqual(ReadFileTests.gui.ui.schemaLine.text(), "")
+
+    def test_read_good_delim(self):
+        self.set_file("|", "good_delim.txt")
+        self.assertEqual(core._attributes, ['name', 'manf'])
+        self.assertEqual(ReadFileTests.gui.ui.schemaLine.text(), "name,manf")
+
+    def test_read_no_delim(self):        
+        delim = ""
+        fileName = "good_delim.txt"
+        QTest.qWaitForWindowActive(ReadFileTests.gui)
+        QtCore.QTimer.singleShot(1000, lambda: inject(QApplication.activeModalWidget(), delim))
+        QTest.keyPress(ReadFileTests.gui, Qt.Key_F, Qt.ControlModifier | Qt.ShiftModifier)
+        QTest.keyRelease(ReadFileTests.gui, Qt.Key_F, Qt.ControlModifier | Qt.ShiftModifier)
+        
+        self.assertEqual(core._attributes, [])
+        self.assertEqual(ReadFileTests.gui.ui.schemaLine.text(), "")
+        
+
+    def tearDown(self):
+        core._attributes = []
+        ReadFileTests.gui.ui.schemaLine.setText("")
+
+    @classmethod
+    def tearDownClass(cls):
+        ReadFileTests.gui.destroy()
+
 
 def inject(window, fileName):
     window.text = lambda: fileName
@@ -135,10 +209,9 @@ if __name__ == "__main__":
     sys.path.append(srcdir)
 
     import core
-
-    testSuite = unittest.makeSuite(LoadFileTests, 'test')
-    runner = unittest.TextTestRunner()
-    runner.run(testSuite)
-    #testSuite.addTest(CoverEqualityTests("test_load_fds"))
     
-    #unittest.main()
+    loader = unittest.TestLoader()
+    testSuite = unittest.makeSuite(LoadFileTests, 'test')
+    testSuite.addTests(loader.loadTestsFromTestCase(ReadFileTests))
+    runner = unittest.TextTestRunner(verbosity=2)
+    runner.run(testSuite)
