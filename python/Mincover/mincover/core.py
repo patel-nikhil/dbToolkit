@@ -1,7 +1,7 @@
 #!/user/bin/python3
 # -*- coding: utf-8 -*-
 
-""""
+"""
 This module customizes the user interface and defines
 the control flow of the Mincover program
 """
@@ -89,6 +89,13 @@ class UI(QMainWindow):
         csvImport.setShortcut('Ctrl+Shift+I')
         csvImport.setStatusTip('Import Schema as first line of a comma-separated file')
         csvImport.triggered.connect(lambda: importCSV(self, (self.ui.schemaLine_2 if self.page() else self.ui.schemaLine)))
+
+        # Import from file option
+        fileImport = QAction(QIcon(), '&Import from file', self)
+        fileImport.setShortcut('Ctrl+Shift+F')
+        fileImport.setStatusTip('Import Schema as first line of a character-delimited file')
+        fileImport.triggered.connect(lambda: importFile(self, (self.ui.schemaLine_2 if self.page() else self.ui.schemaLine)))
+
 
         # Add modal dialog for choosing database type and path to driver & database
         dbImport = QAction(QIcon(), '&Import from existing database', self)
@@ -434,12 +441,28 @@ def importCSV(window, schema):
             else:
                 print("Invalid formatting")
 
+## Change prev method to a generic character delimited file
+def importFile(window, schema):
+    """Import a schema from a character-delimited file"""
+    global _attributes
+    
+    fileName = getFile(window, 3)
+    if fileName is None:
+        return
+    
+    if os.path.isfile(fileName):
+        with open(fileName, 'r', newline='') as infile:            
+                text = infile.readline() # -> [attr1, attr2, ..., attrN]
+                _attributes = [s.lower() for s in text]
+                schema.setText(','.join(_attributes))
+            else:
+                print("Invalid formatting")
 
 
 def export_cover(window, source):
     """Export the minimal cover to file"""
 
-    fileName = getFile(window, 3)
+    fileName = getFile(window, 4)
     if fileName is None:
         return
     
@@ -564,8 +587,15 @@ def getFile(window, mode):
                              options = 0)
         dialog.setFileMode(QFileDialog.ExistingFile)
 
-    # Save data
+    # Load character-delimited
     elif mode == 3:
+        dialog = QFileDialog(window, _translate("MainWindow", "Open File"), "",
+            _translate("MainWindow", "All files (*.*)"),
+                             options = 0)
+        dialog.setFileMode(QFileDialog.ExistingFile)
+
+    # Save data
+    elif mode == 4:
         dialog = QFileDialog(window, _translate("MainWindow", "Save File"), "",
             _translate("MainWindow", "DB Design File (*.fdcover);;Plain text file (*.txt);;All files (*.*)"),
                              options = 0)
@@ -574,7 +604,7 @@ def getFile(window, mode):
     dialog.text = lambda x=dialog.result: dialog.selectedFiles()[0] if x() else None    
     dialog.accepted.connect(lambda: dialog.text)
     dialog.exec_()
-    if mode == 3:
+    if mode == 4:
         ext = dialog.selectedNameFilter()[:-1].split('*')[1]
     else:
         ext = ""
