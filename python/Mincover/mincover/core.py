@@ -20,6 +20,7 @@ from PyQt5 import QtCore
 
 from view.ui_stacked import Ui_MainWindow
 from view.ui_input import Ui_Dialog
+from view.char_input import Ui_Dialog as charDialog
 
 import mincover
 
@@ -111,6 +112,7 @@ class UI(QMainWindow):
         fileMenu.addAction(openAction)
         fileMenu.addAction(dbImport)
         fileMenu.addAction(csvImport)
+        fileMenu.addAction(fileImport)
         fileMenu.addAction(exitAction)
 
     def addToolsMenu(self):
@@ -435,29 +437,38 @@ def importCSV(window, schema):
             if csv.Sniffer().has_header(infile.readline()):
                 infile.seek(0)
                 reader = csv.reader(infile)
-                text = next(reader) # -> [attr1, attr2, ..., attrN]
-                _attributes = [s.lower() for s in text]
+                text = next(reader) # -> [attr1, attr2, ..., attrN]                
+                _attributes = [s for s in text]
                 schema.setText(','.join(_attributes))
             else:
                 print("Invalid formatting")
 
-## Change prev method to a generic character delimited file
+
 def importFile(window, schema):
     """Import a schema from a character-delimited file"""
     global _attributes
     
+    dialog = QDialog()
+    inDialog = charDialog()
+    inDialog.setupUi(dialog)    
+    dialog.text = lambda x=dialog.result: inDialog.delim.text() if x() else None    
+    dialog.accepted.connect(dialog.text)
+    dialog.exec_()
+
+    sep = dialog.text()
+    if sep is None or sep == "":
+        return
+    
     fileName = getFile(window, 3)
     if fileName is None:
         return
-    
-    if os.path.isfile(fileName):
-        with open(fileName, 'r', newline='') as infile:            
-                text = infile.readline() # -> [attr1, attr2, ..., attrN]
-                _attributes = [s.lower() for s in text]
-                schema.setText(','.join(_attributes))
-            else:
-                print("Invalid formatting")
 
+    if os.path.isfile(fileName):
+        with open(fileName, 'r') as infile:            
+            text = infile.readline()[:-1] # -> [attr1, attr2, ..., attrN]
+            attrs = text.split(sep)
+            _attributes = attrs
+            schema.setText(','.join(_attributes))
 
 def export_cover(window, source):
     """Export the minimal cover to file"""
