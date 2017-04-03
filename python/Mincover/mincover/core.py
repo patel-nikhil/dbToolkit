@@ -425,7 +425,7 @@ def checkFD(window, source):
 
 def import_sqlite(window, schema):
     import sqlite3
-    from view.ui_tables import Ui_Dialog as tableDialog
+    from view.ui_tables import Ui_Dialog as TableDialog
 
     global _attributes
     global _fds
@@ -435,7 +435,14 @@ def import_sqlite(window, schema):
     if fileName is None:
         return
     
-    if os.path.isfile(fileName):    
+    if os.path.isfile(fileName):
+
+        with open(fileName, "rb") as dbfile:
+            header = dbfile.read(100)
+            
+            if header[0:16] != b'SQLite format 3\x00':
+                return
+            
         connection = sqlite3.connect(fileName)
         cursor = connection.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
@@ -444,15 +451,19 @@ def import_sqlite(window, schema):
         if len(tableList) == 0:
             return
         elif len(tableList) > 1:
-            dialog = QDialog()
-            td = tableDialog()
-            td.setupUi(dialog)
-            td.tables.addItems([table[0] for table in tableList])
-            dialog.text = lambda x=dialog.result: td.tables.currentText() if x() else None
-            dialog.accepted.connect(dialog.text)
-            dialog.exec_()
+            import traceback
+            try:
+                dialog = QDialog()
+                td = TableDialog()
+                td.setupUi(dialog)
+                td.tables.addItems([table[0] for table in tableList])
+                dialog.text = lambda x=dialog.result: td.tables.currentText() if x() else None
+                td.buttonBox.accepted.connect(dialog.text)
+                dialog.exec_()
 
-            table = dialog.text()
+                table = dialog.text()
+            except:
+                print(traceback.format_exc())
         else:                
             table = tableList[0][0]
 
