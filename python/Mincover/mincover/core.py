@@ -102,7 +102,8 @@ class UI(QMainWindow):
         dbImport = QAction(QIcon(), '&Import from existing database', self)
         dbImport.setShortcut('Ctrl+I')
         dbImport.setStatusTip('Import Schema from a database')
-        dbImport.triggered.connect(lambda pg=self.page: lambda: importCSV(self, self.ui.schemaLine_2) if pg() else lambda: importCSV(self, self.ui.schemaLine_2))
+        dbImport.triggered.connect(lambda: import_sqlite(self, (self.ui.schemaLine_2 if self.page() else self.ui.schemaLine)))
+        #dbImport.triggered.connect(lambda pg=self.page: lambda: importCSV(self, self.ui.schemaLine_2) if pg() else lambda: importCSV(self, self.ui.schemaLine_2))
 
         exitAction = QAction(QIcon(), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
@@ -421,6 +422,50 @@ def checkFD(window, source):
                 source.schemaView.data.appendRow(newFD)
                 source.attrEntry.clear()
 
+
+def import_sqlite(window, schema):
+    import sqlite3
+    from view.ui_tables import Ui_Dialog as tableDialog
+
+    global _attributes
+    global _fds
+    global _cover
+    
+    fileName = getFile(window, 2)
+    if fileName is None:
+        return
+    
+    if os.path.isfile(fileName):    
+        connection = sqlite3.connect(fileName)
+        cursor = connection.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tableList = cursor.fetchall()
+        
+        if len(tableList) == 0:
+            return
+        elif len(tableList) > 1:
+            dialog = QDialog()
+            td = tableDialog()
+            td.setupUi(dialog)
+            td.tables.addItems([table[0] for table in tableList])
+            dialog.text = lambda x=dialog.result: td.tables.currentText() if x() else None
+            dialog.accepted.connect(dialog.text)
+            dialog.exec_()
+
+            table = dialog.text()
+        else:                
+            table = tableList[0][0]
+
+        if table is not None:
+            cursor.execute("pragma table_info ({})".format(table))
+            metaInfo = cursor.fetchall()
+            _attributes = [s[1] for s in metaInfo]
+            schema.setText(','.join(_attributes))
+            window.clear_all()
+            _fds = []
+            _cover = []
+            
+        connection.close()
     
 
 def importCSV(window, schema):
