@@ -479,6 +479,77 @@ def import_sqlite(window, schema):
         connection.close()
     
 
+def import_database(window, schema):
+
+    import sqlite3
+    from view.ui_tables import Ui_Dialog as TableDialog
+    supportedDB = ["SQLite, SQL Server"]
+    
+    dialog = QDialog()
+    td = TableDialog()
+    td.setupUi(dialog)
+    td.tables.addItems(supportedDB)
+    dialog.text = lambda x=dialog.result: td.tables.currentText() if x() else None
+    td.buttonBox.accepted.connect(dialog.text)
+    dialog.exec_()
+
+    dbms = dialog.text()
+
+    if dbms is not None:
+        if dbms == "SQLite":
+            import_sqlite(window, schema)
+            return
+
+    from PyQt5.QtWidgets import QMessageBox
+    msgBox = QMessageBox()
+    msgBox.setWindowTitle("Information")
+    msgBox.setIcon(QMessageBox.NoIcon)
+    msgBox.setText('''You will need a compatible JRE installed (32 or 64-bit depending
+    on which version of this program you are using).
+    You will need to provide a JDBC driver for your DBMS.
+    Only SQLite support is natively included''')
+    msgBox.exec_()
+
+    driver = getFile(window, 5)
+    if fileName is None:
+        return
+
+    if os.path.isfile(fileName):
+        auth = getAuthentication(window)
+        if dbms == "SQL Server":
+            import_sqlserver(window, schema, driver, auth)
+            return
+
+
+def import_sqlserver(window, schema, jar, auth, port=1433):
+    import jaydebeapi
+    global connection
+    global cursor
+
+    from PyQt5.QtWidgets import QMessageBox
+    msgBox = QMessageBox()
+    msgBox.setWindowTitle("Information")
+    msgBox.setIcon(QMessageBox.NoIcon)
+    msgBox.setText('''A SQL Server instance must be running with TCP/IP connectivity enabled''')
+    msgBox.exec_()
+    
+    driver = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+    dbURL = "jdbc:sqlserver://localhost;database=TEST2;integratedSecurity=true"
+    jar = "data//dbfiles//sqljdbc41.jar"
+    connection = jaydebeapi.connect(driver, dbURL, jars=jar)
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT DISTINCT TABLE_NAME FROM TEST2.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA ='dbo'")
+    tables = [t[0] for t in cursor.fetchall()]
+    print("tables");print(tables)
+    for table in tables:
+        cursor.execute("SELECT COLUMN_NAME FROM TEST2.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME ='{}' AND TABLE_SCHEMA ='dbo'".format(table))
+        attrs = [c[0] for c in cursor.fetchall()]
+        print(table)
+        print(attrs)
+            
+    connection.close()
+
 def importCSV(window, schema):
     """Import a schema from a comma-delimited file"""
     import csv
