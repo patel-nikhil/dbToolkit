@@ -1,28 +1,44 @@
-## Disclaimer:
-## This module does not claim to give an optimal minimal cover.
-## For cases where the size, complexity or other distinguishing
-## characteristics of an attribute or attributes may largely affect
-## performance it is recommend you manually inspect the produced
-## results at each stage of the formation
+#!/user/bin/python3
+# -*- coding: utf-8 -*-
+
+"""
+This module contains a set of methods for obtaining a minimal cover
+from a set of functional dependencies
+
+
+ Disclaimer:
+ This module does not claim to give an optimal minimal cover.
+ For cases where the size, complexity or other distinguishing
+ characteristics of an attribute or attributes may largely affect
+ performance it is recommend you manually inspect the produced
+ results at each stage of the formation
+"""
 
 import copy
 import pprint
 
-# Return the number of attributes in the given sequence
+__all__ = ["find_closures", "split_rhs", "mincover"]
+
+
 def sizeof(attr_list):
+    """Return the number of attributes in the given sequence"""
     return len(attr_list)
 
 def remove(attr_list, attr):
+    """Remove the specified attribute from the sequence of attributes"""
     return attr_list.replace(attr, "")
 
 def contains(attr_list, attrs):
+    """Return whether the sequence contains the specified attribute"""
     for each in attrs:
         if each not in attr_list:
             return False
     return True
 
-# Splits RHS of FDs
-def split_rhs (DEPS):    
+
+def split_rhs (DEPS):
+    """Splits FDs with multiple attributes on the RHS to multiple FDs with a
+    single attribute on the RHS"""
     FDS = []
     for dep in DEPS:
         for let in dep[1]:
@@ -31,18 +47,16 @@ def split_rhs (DEPS):
     return FDS
 
 
-# True when x2 is a superset of x1
 def find(x1, x2):
+    """Return whether x2 is a superset of x1"""
     for i in x1:
         if i not in x2:
             return False
     return True
 
 
-# Given a list of dependencies, finds the closure
 def find_closures(dependencies):
-
-    keys = []
+    """Given a list of dependencies, finds the closure"""
     closures = []
 
     #For each dependency
@@ -54,7 +68,6 @@ def find_closures(dependencies):
         # True when LHS has been covered already
         if lhs in [s[0] for s in closures]:
             continue
-
         
         while (True):
             temp = lhs
@@ -77,6 +90,7 @@ def find_closures(dependencies):
 
 
 def remove_redundant (FDS, closures):
+    """Removes redunant functional dependencies by computing and testing closures"""
     i = 0
 
     while i < len(FDS):
@@ -102,7 +116,8 @@ def remove_redundant (FDS, closures):
     return FDS
 
 
-def minimize_rhs (FDS):
+def minimize_lhs (FDS):
+    """Minimizes the LHS of FDs by computing closures"""
     for dependency in FDS:
         lhs = dependency[0]
         x = dependency[0]
@@ -133,10 +148,11 @@ def minimize_rhs (FDS):
 
 
 def mincover(dependencies):
+    """Computes and returns a minimal cover made from the set of FDs"""
     fds = split_rhs(dependencies)
     closures = find_closures(fds)
     fds = remove_redundant(fds, closures)
-    fds = minimize_rhs(fds)
+    fds = minimize_lhs(fds)
     return fds
 
 # Example minimal cover construction
@@ -162,7 +178,7 @@ if __name__ == "__main__":
     ['C','A'],
     ['C','C'],
     ['C','G'],
-    #['C','A'],          
+    #['C','A'],
     ['C','F'],
     ['C','H'],
     ['DE','H'],

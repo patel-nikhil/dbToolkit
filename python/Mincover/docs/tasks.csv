@@ -1,0 +1,24 @@
+Tasks(pid, taskID, description)
+1,1,Add code to interface with database
+1,2,Integrate with user interface
+1,3,Unit testing
+2,1,Write core logic
+2,2,Adapt user interface
+2,3,Unit testing
+2,4,Feature integration
+3,1,Add code to interface with database
+3,2,Integrate with user interface
+3,3,Unit testing
+5,1,Add code to interface with database
+5,2,Integrate with user interface
+5,3,Unit testing
+7,1,Prompt for existing filename
+7,2,Validate file contents
+7,3,Load data into model and update views
+7,4,Fix data exporting
+7,5,Test import methods
+7,6,Assert the imported cover is empty or indeed a cover
+8,1,Update user interface
+8,2,Prompt for and validate input
+8,3,Write equality checks for FDs
+8,4,Write and execute tests
