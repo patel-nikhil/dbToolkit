@@ -11,7 +11,7 @@ dbToolkit is designed using the [Qt] framework and uses [PyQt5], a set of Python
 
 dbToolkit is currently being developed using Python 3. 
 
-Creating analogous java implementations (straight port or otherwise) with similar functionality is an anticipated future endeavour - hence the directory structure differentiation by language then project
+Creating analogous java implementations (straight port or otherwise) with similar functionality is an anticipated future endeavour in which case a 'java' directory will contain said implementations
 
    [Qt]: <https://www.qt.io/developers/>
    [PyQt5]: <https://riverbankcomputing.com/software/pyqt/intro>
