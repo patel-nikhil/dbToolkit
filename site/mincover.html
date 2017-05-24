@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Mincover Project Page</title>
+	<link rel="stylesheet" type="text/css" href="style.css" />
+</head>
+
+<body>
+<div class="header">
+    <h1>Mincover: A tool for achieving 3NF and BCNF</h1>
+</div>
+<nav>
+	<ul>
+		<li><a rel="external" href="../index.html">Home</a></li>
+		<li><a rel="external" href="#">Mincover</a></li>
+		<li><a rel="external" href="normalizer.html">Normalizer</a></li>
+		<li><a rel="external" href="../index.html">About</a></li>
+	</ul>
+</nav>
+<div id="wrapper">
+	<br><br><br>
+	<h3>Overview</h3>
+	<p>Transforming relational schemas into normal forms is a fundamental part database design. The objective of a normal form is to reduce and/or remove the following undesirable properties: insert/update/delete anomalies, lossy decompositions, redundancy and duplication with respect to the data and dependencies.</p>
+
+	<h3>What is a minimal cover?</h3>
+	<p>To decompose a relational schema into 3NF or BCNF one needs to first compute a minimal cover. This is the smallest set of functional dependencies (FDs) that can be achieved while maintaining the same closure as the original set of FDs. A minimal cover has no redundant dependencies or extraneous attributes within a FD.</p>
+	
+	<h3>Features</h3>
+	<ul>
+		<li>Computation of minimal cover from schema and FDs</li>
+		<li>Testing of FDs to determine if they form a minimal cover</li>		
+		<li>Schema import from SQLite database file</li>
+		<li>Schema import from csv file</li>
+		<li>Import/export of schema, FDs, minimal cover to filesystem</li>
+	</ul>
+	
+	
+	<h3>Design</h3>
+	<p>dbToolkit is designed using the Qt framework and uses PyQt5, a set of Python bindings for the Qt application framework.</p>
+
+	<h3>License</h3>
+
+	Mincover is licensed under the terms of the GNU GPL (v3 or later) license.
+	<br><br>
+	<a href="https://github.com/np123/dbToolkit/tree/master/Mincover">View source on Github</a>
+</div>
+</body>
+</html>
