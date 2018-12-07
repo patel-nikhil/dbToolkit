@@ -119,31 +119,28 @@ def remove_redundant (FDS, closures):
 def minimize_lhs (FDS):
     """Minimizes the LHS of FDs by computing closures"""
     for dependency in FDS:
-        lhs = dependency[0]
-        x = dependency[0]
+        lhs = dependency[0].replace(',','')
+        x = dependency[0].replace(',','')
         y = dependency[1]        
 
         if sizeof(x) == 1:
             continue
-
+        
         redundant = False    
         for attr in x:
             dependency[0] = remove(x, attr)
             redundant = False
-            
             for dep in FDS:
-                if dep == x:
+                if dep == dependency:
                     continue
-                for att in dependency[0]:                
-                    if contains(dep[0], att) and contains(dep[1], attr):             
-                        dependency[0] = remove(x, attr)
-                        redundant = True
-                if redundant == True:
+                if contains(dependency[0], dep[0]) and contains(dep[1], attr):             
+                    x = remove(x, attr)
+                    lhs = remove(x, attr)
+                    redundant = True
                     break
-            if redundant == True:
-                    break
-            elif redundant == False:
+            if redundant == False:
                 dependency[0] = lhs
+        dependency[0] = ','.join(list(dependency[0]))
     return FDS
 
 
@@ -237,7 +234,7 @@ if __name__ == "__main__":
     print('-'*60)
     print('-'*60)
 
-    FDS = minimize_rhs(FDS)
+    FDS = minimize_lhs(FDS)
 
     print('-'*60)
     print("")

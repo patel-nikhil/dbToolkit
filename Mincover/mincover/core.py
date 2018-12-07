@@ -203,7 +203,7 @@ class UI(QMainWindow):
         self.form.attrLabel.setText(_translate("Dialog", "Enter attribute name"))
         self.form.confirmBtn.clicked.connect(lambda: add_attribute(self.form))
         self.form.clearBtn.clicked.connect(lambda: clear_schema(self.form))
-        self.form.buttonBox.accepted.connect(lambda: update(self.form, lambda pg=self.page: self.ui.schemaLine_2 if pg() else self.ui.schemaLine))        
+        self.form.buttonBox.accepted.connect(lambda: update(self.form, (self.ui.schemaLine_2 if self.page() else self.ui.schemaLine)))
         
         init_model(self.form.schemaView)
         for attr in _attributes:            
@@ -224,7 +224,7 @@ class UI(QMainWindow):
         self.form.attrLabel.setText(_translate("Dialog", "Enter Dependency in form attr1, attr2 - attr3, attr4"))
         self.form.confirmBtn.clicked.connect(lambda: add_fd(self.form))
         self.form.clearBtn.clicked.connect(lambda: clear_schema(self.form))
-        self.form.buttonBox.accepted.connect(lambda: update_fds(self.form, lambda pg=self.page: self.ui.fdText_2 if pg() else self.ui.fdText))
+        self.form.buttonBox.accepted.connect(lambda: update_fds(self.form, (self.ui.fdText_2 if self.page() else self.ui.fdText)))
         
         init_model(self.form.schemaView)
         
@@ -298,12 +298,12 @@ def init_model(listView):
 def update(source, schema):
     """Update the schema displayed in the interface"""
     global _attributes
-
+    
     _attributes = []
     for i in range(source.schemaView.data.rowCount()):
         _attributes.append(source.schemaView.data.item(i).text())
     schema.setText(','.join(_attributes))
-
+    
 
 def update_fds(source, fdBox):
     """Update the functional dependencies displayed in the interface"""
@@ -783,7 +783,7 @@ def gen_cover(coverBox):
     
     # Format mincover output to match required output
     _cover = ["-".join([", ".join(a) for a in each]) for each in cover]
-
+    
     # Update interface with minimal cover
     coverBox.data.clear()
     for dep in _cover:
